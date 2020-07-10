@@ -13,6 +13,7 @@ __status__ = "Research"
 
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 plt.style.use("config/alt.mplstyle")
 
@@ -22,6 +23,7 @@ sys.path.append("models/experiments/")
 import os
 import numpy as np
 import argparse
+import pandas as pd
 import datetime as dt
 from netCDF4 import Dataset, num2date
 from dateutil import parser as dparser
@@ -77,10 +79,6 @@ def _case0_(args):
                 utils.int_absorption(u.AH["AV_MB"]["O"], pg.alts, extpoint=64, llim = 60, ulim = 110),
                 utils.int_absorption(u.SW["FT"]["O"], pg.alts, extpoint=64, llim = 60, ulim = 110)])
         _k_ = np.array(_k_)[:,:,0]
-        print([10**utils.extrap1d(_k_[:,0], np.log10(nfo))([1])[0],
-            10**utils.extrap1d(_k_[:,1], np.log10(nfo))([1])[0],
-            10**utils.extrap1d(_k_[:,2], np.log10(nfo))([1])[0],
-            10**utils.extrap1d(_k_[:,3], np.log10(nfo))([1])[0]])
         _qo_.append([10**utils.extrap1d(_k_[:,0], np.log10(nfo))([1])[0], 
             10**utils.extrap1d(_k_[:,1], np.log10(nfo))([1])[0],
             10**utils.extrap1d(_k_[:,2], np.log10(nfo))([1])[0],
@@ -178,8 +176,12 @@ def _case1_(args):
 
         i = 0
         for ev, start, end in zip(evs, starts, ends):
+            _X_ = pd.read_csv("config/dat/case1.ev{t}.csv".format(t=i))
+            _X_["dt"] = [ev + dt.timedelta(hours=h) for h in _X_.dt]
+            _X_ = _X_.sort_values(by=["dt"])
             ax = axes[i,0]
             ax.xaxis.set_major_formatter(fmt)
+            ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=60))
             ax.set_ylabel("Solar Flux, "+r"$Wm^{-2}$", fontdict=font)
             xray = utils.read_goes(ev)
             ax.semilogy(xray.date, xray.B_AVG, color="r", label=r"SXR ($\lambda$, .1-.8 nm)", linewidth=0.8)
@@ -187,8 +189,8 @@ def _case1_(args):
             ax.set_xlim(start, end)
             ax.set_yticks([1e-8,1e-7,1e-6,1e-5,1e-4,1e-3])
             ax.set_ylim(1e-8,1e-3)
-            ax.legend(loc=1, scatterpoints=3, fontsize=8, frameon=True)
-            ax.text(0.3, 1.05, ev.strftime("%Y-%m-%d")+" UT", horizontalalignment="center", 
+            #ax.legend(loc=1, scatterpoints=3, fontsize=8, frameon=True)
+            ax.text(0.35, 1.05, "(a.%d) "%(i+1) + ev.strftime("%Y-%m-%d")+" UT", horizontalalignment="center", 
                     verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
 
             fname = "data/sim/{date}/flare.sps.nc.gz".format(date=ev.strftime("%Y.%m.%d.%H.%M"))
@@ -199,17 +201,22 @@ def _case1_(args):
             ax.set_yticks([])
             ax = ax.twinx()
             ax.xaxis.set_major_formatter(fmt)
+            ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=60))
             times = num2date(nc.variables["time"][:], nc.variables["time"].units, nc.variables["time"].calendar)
             times = np.array([x._to_real_datetime() for x in times]).astype("datetime64[ns]")
             times = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) for x in times]
             ax.plot(times, 2*utils.int_absorption(nc.variables["abs.ah.sn.o"][:], model["alts"], extpoint=68), "r", 
                     linewidth=1.2, label=r"$\beta_{ah}(\nu_{sn})$")
-            ax.plot(times, 2*utils.int_absorption(nc.variables["abs.ah.av.cc.o"][:], model["alts"], extpoint=68), "g",
+            ax.plot(times, 2*utils.int_absorption(nc.variables["abs.sw.ft.o"][:], model["alts"], extpoint=68), "k",
                     linewidth=0.8, label=r"$\beta_{ah}(\nu_{av}^{cc})$")
+            ax.plot(times, 2*nc.variables["drap"][:], "k--", linewidth=0.8, label="DRAP2")
             ax.set_xlim(start, end)
             ax.set_ylabel("Absorption, dB", fontdict=font)
-            ax.legend(loc=1, scatterpoints=3, fontsize=8, frameon=True)
-            ax.text(0.5, 1.05, ev.strftime("%Y-%m-%d")+" UT, @6.4 MHz", horizontalalignment="center", 
+            ax.scatter(_X_[_X_.model=="Y"].dt, _X_[_X_.model=="Y"].db, 
+                    s=1.2, color="r", alpha=0.8, label="Levine et al. (2019)")
+            ax.scatter(_X_[_X_.model=="N"].dt, _X_[_X_.model=="N"].db, s=1.2, color="k", alpha=0.8, label="Ionosonde")
+            #ax.legend(loc=1, scatterpoints=3, fontsize=8, frameon=True)
+            ax.text(0.5, 1.05, "(b.%d) "%(i+1) + ev.strftime("%Y-%m-%d")+" UT, @6.4 MHz", horizontalalignment="center", 
                     verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
             i += 1
 
@@ -221,7 +228,8 @@ def _case2_(args):
     """ Testing electron temperature dependence """
     args.event, args.rio, args.start, args.end = dt.datetime(2011,9,7,22,38), "mcmu",\
             dt.datetime(2011,9,7,22,10), dt.datetime(2011,9,7,23,20)
-    TElec = np.linspace(.05,10,20)
+    start, end =  dt.datetime(2011,9,7,22,30), dt.datetime(2011,9,7,23,0)
+    TElec = np.linspace(0.75,1.75,101)
     if args.prog == "bgc":
         cmd = "python simulate.py -p bgc -r {r} -ev {ev} -s {s} -e {e} -v".format(r=args.rio,
                 ev=args.event.strftime("%Y-%m-%dT%H:%M"), s=args.start.strftime("%Y-%m-%dT%H:%M"),
@@ -239,27 +247,56 @@ def _case2_(args):
         font = {"family": "serif", "color":  "black", "weight": "normal", "size": 6}
         fonttext = {"family": "serif", "color":  "blue", "weight": "normal", "size": 6}
         fmt = matplotlib.dates.DateFormatter("%H:%M")
-        fig, ax = plt.subplots(figsize=(3, 2), nrows=1, ncols=1, dpi=100)
+        fig, axes = plt.subplots(figsize=(6, 2), nrows=1, ncols=2, dpi=100)
         files = glob.glob("data/sim/{dn}/flare*TElec*".format(dn=args.event.strftime("%Y.%m.%d.%H.%M")))
+        ax = axes[0]
         ax.xaxis.set_major_formatter(fmt)
         files.sort()
-        for f in files:
+        X = []
+        _abs_ = utils.read_riometer(args.event, args.rio)
+        _abs_ = _abs_[(_abs_.date > start) & (_abs_.date < end-dt.timedelta(minutes=1))]
+        cmap = matplotlib.cm.get_cmap("Reds")
+        for i,f in enumerate(files):
             os.system("gzip -d " + f)
             nc = Dataset(f.replace(".gz", ""))
             os.system("gzip " + f.replace(".gz", ""))
             times = num2date(nc.variables["time"][:], nc.variables["time"].units, nc.variables["time"].calendar)
             times = np.array([x._to_real_datetime() for x in times]).astype("datetime64[ns]")
             times = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) for x in times]
-            ax.plot(times, utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:], model["alts"], extpoint=68), 5), "r",
-                    linewidth=0.6, alpha=0.4)
-        _abs_ = utils.read_riometer(args.event, args.rio)
-        ax.plot(_abs_.date, _abs_.hf_abs, "ko", alpha=0.4, markersize=0.1,label=r"$\beta_{R}$", lw=.4)
-        ax.set_xlim(args.start, args.end)
-        ax.text(0.5, 1.05, "%s UT, %s @30 MHz"%(args.event.strftime("%Y-%m-%d"), args.rio.upper()), horizontalalignment="center",
+            if np.mod(i,20)==0: ax.plot(times, utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:],
+                model["alts"], extpoint=68), 5), color=cmap(.2+(i/200)), 
+                linewidth=0.6, ls="--", label=r"$T_d$=%.2f"%TElec[i])
+            m = pd.DataFrame()
+            m["date"] = times
+            m["hf_abs"] = utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:], model["alts"], extpoint=68), 5)
+            m = m[(m.date >= start) & (m.date < end)]
+            e = utils.estimate_error(m, _abs_)
+            X.append(e)
+        X = np.array(X)
+        ax.plot(_abs_.date, _abs_.hf_abs, "ko", alpha=0.4, markersize=0.1, label=r"$\beta_{R}$", lw=.4)
+        ax.set_xlim(start, end)
+        ax.text(0.5, 1.05, r"(a) %s UT, %s @30 MHz, $T_d=\frac{T}{T^{70}_{base}}$"%(args.event.strftime("%Y-%m-%d"), 
+            args.rio.upper()), horizontalalignment="center",
             verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
-        ax.set_ylim(-.1,10)
+        ax.set_ylim(-.1,2.5)
+        ax.legend(loc=1, scatterpoints=3, fontsize=4, ncol=2, frameon=True)
         ax.set_xlabel("Time (UT)", fontdict=font)
         ax.set_ylabel("Absorption, dB", fontdict=font)
+
+        ax = axes[1]
+        ax.grid(False, axis="y")
+        ax.set_xlabel(r"Temperature ratio, $\frac{T}{T^{70}_{base}}$", fontdict=font)
+        ax.set_yticklabels([])
+        ax = ax.twinx()
+        ax.plot(TElec, X, "ro", markersize=0.3, alpha=.6)
+        ax.set_xlim(.75,1.75)
+        ax.axvline(TElec[np.argmin(X)], ls="--", lw=0.4, color="b")
+        ax.set_ylabel("RMSE", fontdict=font)
+        ax.text(0.5, 1.05, "(b) Impact of Temperature on RMSE", horizontalalignment="center",
+                            verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
+        fonttext["size"] = 4
+        ax.text(TElec[np.argmin(X)], 0.745, r"$T_d$=%.2f"%TElec[np.argmin(X)], horizontalalignment="center",
+                verticalalignment="center", fontdict=fonttext, rotation=90)
         fig.autofmt_xdate()
         fig.savefig("_images_/case2.png", bbox_inches="tight")
     return
@@ -268,8 +305,9 @@ def _case3_(args):
     """ Testing lambda parameter dependence """
     args.event, args.rio, args.start, args.end = dt.datetime(2011,9,7,22,38), "mcmu",\
             dt.datetime(2011,9,7,22,10), dt.datetime(2011,9,7,23,20)
+    start, end =  dt.datetime(2011,9,7,22,30), dt.datetime(2011,9,7,23,0)
+    lam = np.linspace(1,20,101)
     if args.prog == "flare":
-        lam = np.linspace(.05,10,20)
         for l in lam:
             if args.verbose: print(" lambda:", l)
             Model(args.rio, args.event, args)._exp_("lambda", {"lambda": l})
@@ -280,27 +318,52 @@ def _case3_(args):
         font = {"family": "serif", "color":  "black", "weight": "normal", "size": 6}
         fonttext = {"family": "serif", "color":  "blue", "weight": "normal", "size": 6}
         fmt = matplotlib.dates.DateFormatter("%H:%M")
-        fig, ax = plt.subplots(figsize=(3, 2), nrows=1, ncols=1, dpi=100)
-        files = glob.glob("data/sim/{dn}/flare*TElec*".format(dn=args.event.strftime("%Y.%m.%d.%H.%M")))
+        fig, axes = plt.subplots(figsize=(6, 2), nrows=1, ncols=2, dpi=100)
+        files = glob.glob("data/sim/{dn}/flare*lambda*".format(dn=args.event.strftime("%Y.%m.%d.%H.%M")))
+        ax = axes[0]
         ax.xaxis.set_major_formatter(fmt)
         files.sort()
-        for f in files:
+        X = []
+        _abs_ = utils.read_riometer(args.event, args.rio)
+        _abs_ = _abs_[(_abs_.date > start) & (_abs_.date < end-dt.timedelta(minutes=1))]
+        cmap = matplotlib.cm.get_cmap("Reds")
+        for i,f in enumerate(files):
             os.system("gzip -d " + f)
             nc = Dataset(f.replace(".gz", ""))
             os.system("gzip " + f.replace(".gz", ""))
             times = num2date(nc.variables["time"][:], nc.variables["time"].units, nc.variables["time"].calendar)
             times = np.array([x._to_real_datetime() for x in times]).astype("datetime64[ns]")
             times = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) for x in times]
-            ax.plot(times, utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:], model["alts"], extpoint=68), 5), "r",
-                    linewidth=0.6, alpha=0.4)
-        _abs_ = utils.read_riometer(args.event, args.rio)
-        ax.plot(_abs_.date, _abs_.hf_abs, "ko", alpha=0.4, markersize=0.1,label=r"$\beta_{R}$", lw=.4)
-        ax.set_xlim(args.start, args.end)
-        ax.text(0.5, 1.05, "%s UT, %s @30 MHz"%(args.event.strftime("%Y-%m-%d"), args.rio.upper()), horizontalalignment="center",
-                verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
-        ax.set_ylim(-.1,10)
+            if np.mod(i,1)==0: ax.plot(times, utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:],
+                model["alts"], extpoint=68), 5), color=cmap(.2+(i/15)),
+                linewidth=0.6, ls="--", label=r"$\lambda_d$=%.2f"%lam[i])
+            m = pd.DataFrame()
+            m["date"] = times
+            m["hf_abs"] = utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:], model["alts"], extpoint=68), 5)
+            m = m[(m.date >= start) & (m.date < end)]
+            e = utils.estimate_error(m, _abs_)
+            X.append(e)
+        X = np.array(X)
+        ax.plot(_abs_.date, _abs_.hf_abs, "ko", alpha=0.4, markersize=0.1, label=r"$\beta_{R}$", lw=.4)
+        ax.set_xlim(start, end)
+        ax.text(0.5, 1.05, r"(a) %s UT, %s @30 MHz, $\lambda_d=\frac{\lambda}{\lambda^{70}_{base}}$"%(args.event.strftime("%Y-%m-%d"),
+            args.rio.upper()), horizontalalignment="center",
+            verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
+        ax.set_ylim(-.1,2.5)
+        ax.legend(loc=1, scatterpoints=3, fontsize=4, ncol=2, frameon=True)
         ax.set_xlabel("Time (UT)", fontdict=font)
         ax.set_ylabel("Absorption, dB", fontdict=font)
+        
+        ax = axes[1]
+        ax.grid(False, axis="y")
+        ax.set_xlabel(r"$\lambda$ Ratio, $\frac{\lambda}{\lambda^{70}_{base}}$", fontdict=font)
+        ax.set_yticklabels([])
+        ax = ax.twinx()
+        ax.plot(lam, X, "ro", markersize=0.3, alpha=.6)
+        #ax.set_xlim(.75,1.75)
+        ax.set_ylabel("RMSE", fontdict=font)
+        ax.text(0.5, 1.05, "(b) Impact of Negative Ions on RMSE", horizontalalignment="center",
+                verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
         fig.autofmt_xdate()
         fig.savefig("_images_/case3.png", bbox_inches="tight")
     return

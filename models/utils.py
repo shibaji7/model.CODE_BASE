@@ -24,6 +24,9 @@ from pysolar.solar import get_altitude
 import calendar
 import copy
 
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import Matern
+
 from collision import *
 from absorption import *
 from constant import *
@@ -294,3 +297,11 @@ def smooth(x,window_len=51,window="hanning"):
     d = window_len - 1
     y = y[int(d/2):-int(d/2)]
     return y
+
+def estimate_error(m, d, kind="rmse"):
+    """ Estimate error between model and data """
+    xsec = [(x-m.date.tolist()[0]).total_seconds() for x in m.date]
+    xnsec =  [(x-m.date.tolist()[0]).total_seconds() for x in d.date]
+    dx = interp1d(xsec, m.hf_abs)(xnsec)
+    e = np.sqrt(np.mean((dx-np.array(d.hf_abs.tolist()))**2))
+    return e
