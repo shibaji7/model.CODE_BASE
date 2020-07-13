@@ -29,8 +29,8 @@ class Model(object):
         """ Initialize all the parameters """
         self.rio = rio
         self.ev = ev
-        #self.sps = ["O2","N2","O","NO","CO","CO2","H2O"]
-        self.sps = ["O2","N2","O"]
+        self.sps = ["O2","N2","O","NO","CO","CO2","H2O"]
+        #self.sps = ["O2","N2","O"]
         for k in vars(args).keys():
             setattr(self, k, vars(args)[k])
         self._dir_ = "data/sim/{date}".format(date=self.ev.strftime("%Y.%m.%d.%H.%M"))
@@ -128,6 +128,10 @@ class Model(object):
         drap[:] = self.pg.drap.ravel()
         drap.units = "dB"
         drap.description = "Absorption estimated by DRAP2"
+        sato = rootgrp.createVariable("sato", "f8", ("ntimes",))
+        sato[:] = self.pg.sato.ravel()
+        sato.units = "dB"
+        sato.description = "Absorption estimated by Sato et al. (1975)"
 
         rootgrp.close()
         os.system("gzip "+fname.replace(".gz",""))

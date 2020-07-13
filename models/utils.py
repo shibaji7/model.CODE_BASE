@@ -238,6 +238,7 @@ class PointGrid(object):
         self.ni_x = cm.Nxp[::60, :]
         self._abs_ = Absorption(self.igrf["B"], self._col_, self.ne, fo=self.freq*1e6)
         self.drap = Absorption._drap_(self.ev, self.dn, self.rio, self.freq)
+        self.sato = Absorption._sato_(self.ev, self.dn, self.rio, self.freq)
         return
 
 
@@ -305,3 +306,48 @@ def estimate_error(m, d, kind="rmse"):
     dx = interp1d(xsec, m.hf_abs)(xnsec)
     e = np.sqrt(np.mean((dx-np.array(d.hf_abs.tolist()))**2))
     return e
+
+def store_cmd(args):
+    """ Store the commands """
+
+    return
+
+class Performance(object):
+    """ Class to estimate Skillset """
+
+    def __init__(self, stn, ev, times,  model, start, end, bar=4.):
+        """ Initialize the parameters """
+        self.stn = stn
+        self.ev = ev
+        self.times = times
+        self.model = model
+        self.start = start
+        self.end = end
+        self.bar = bar
+        self._read_data_()
+        self._skill_()
+        return
+
+    def _read_data_(self):
+        """ Read data from GOES and Riometer """
+        gos = read_goes(self.ev)
+        rio = read_riometer(self.ev, self.stn)
+        self.gos = gos[(gos.date>=self.start) & (gos.date<=self.end)]
+        rio = rio[(rio.date>=self.start) & (rio.date<=self.end)]
+        self.rio = rio[rio.hf_abs <= self.bar]
+        y = np.array(self.gos.B_AVG.tolist())
+        yn = (y - np.min(y)) / (np.max(y) - np.min(y))
+        self.mx = np.max(self.rio.hf_abs.tolist())
+        self.yx = self.mx * yn
+        return
+
+    def _skill_(self):
+        """ Estimate skills """
+        for k in self.model.keys():
+            d = pd.DataFrame()
+            d["date"], d["hf_abs"] = self.times, self.model[k]
+            d = d[(d.date>=self.start) & (d.date<=self.end)]
+            e = np.sqrt(np.mean((self.yx-np.array(d.hf_abs))**2))
+            print("RMSE -", e)
+            print("Err (mx)-", abs(self.mx-np.max(d.hf_abs)))
+        return

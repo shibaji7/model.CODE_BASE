@@ -329,3 +329,13 @@ class Absorption(object):
         sza = utils.calculate_sza(dates, lat, lon, [100])
         af = af0 * abs(np.cos(np.deg2rad(sza.ravel())))**0.75
         return af
+
+    @staticmethod
+    def _sato_(ev, dates, stn, frq):
+        """ Estimation based on Sato 1975 model """
+        xray = utils.read_goes(ev)
+        xray = xray[(xray.date>=dates[0]) & (xray.date<=dates[-1])]
+        lat, lon = utils.get_riom_loc(stn)
+        sza = utils.calculate_sza(dates, lat, lon, [100])
+        af = 4.37e3 * (1/frq)**2 * (xray.B_AVG**0.5) * np.abs(np.cos(np.deg2rad(sza.ravel())))
+        return af
