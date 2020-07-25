@@ -112,11 +112,14 @@ def download_riometer(dn, stn, v=False):
     elif stn == "ott" and  not os.path.exists(fname+".gz"):
         f_name = "/home/shibaji/model_run/riometers/ott_{year}-{month}-{day}.csv".format(year=dn.year, 
                 month="%02d"%dn.month, day="%02d"%dn.day)
-        data_dict = pd.read_csv(f_name, index_col=0)
-        data_dict = (data_dict[["DATE","_ABS"]]).rename(columns={"DATE":"date", "_ABS":"hf_abs"})
-        data_dict.to_csv(fname, index=False, header=True)
-        os.system("gzip {fname}".format(fname=fname))
-        if v: print("\n File saved  -to- " + fname)
+        if os.path.exists(f_name):
+            data_dict = pd.read_csv(f_name, index_col=0)
+            data_dict = (data_dict[["DATE","_ABS"]]).rename(columns={"DATE":"date", "_ABS":"hf_abs"})
+            data_dict.to_csv(fname, index=False, header=True)
+            os.system("gzip {fname}".format(fname=fname))
+            if v: print("\n File saved  -to- " + fname)
+        else: 
+            if v: print("\n File not exists.")
     return
 
 def get_riom_loc(stn):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""job.py: simulate python program for absorption calculation for all riometers"""
+"""batch.py: simulate python program for absorption calculation for all riometers"""
 
 __author__ = "Chakraborty, S."
 __copyright__ = "Copyright 2020, SuperDARN@VT"
@@ -76,12 +76,29 @@ if __name__ == "__main__":
     parser.add_argument("-fr", "--frequency", type=float, default=30, help="Frequency of oprrations in MHz (default 30 MHz)")
     parser.add_argument("-sps", "--species", type=int, default=0, help="Species Type (default 0)")
     args = parser.parse_args()
-    if args.verbose:
-        print("\n Parameter list for simulation ")
-        for k in vars(args).keys():
-            print("     " , k , "->" , str(vars(args)[k]))
-    if args.prog == "bgc": _bgc_(args)
-    elif args.prog == "flare": _flare_(args)
+    x = pd.read_csv("config/flares.csv",parse_dates=["dn","start","end"])
+    if args.prog == "bgc": 
+        u = x[x.bgc!="Y"]
+        for i, _u in u.iterrows():
+            args.start, args.end, args.event = _u["start"] - dt.timedelta(minutes=0), _u["end"] + dt.timedelta(minutes=0), _u["dn"]
+            if args.verbose:
+                print("\n Parameter list for simulation ")
+                for k in vars(args).keys():
+                    print("     " , k , "->" , str(vars(args)[k]))
+            _bgc_(args)
+            x.at[x.dn==args.event,"bgc"] = "Y"
+        x.to_csv("config/flares.csv", header=True, index=False)
+    elif args.prog == "flare": 
+        u = x[x.flare!="Y"]
+        for i, _u in u.iterrows():
+            args.start, args.end, args.event = _u["start"] - dt.timedelta(minutes=0), _u["end"] + dt.timedelta(minutes=0), _u["dn"]
+            if args.verbose:
+                print("\n Parameter list for simulation ")
+                for k in vars(args).keys():
+                    print("     " , k , "->" , str(vars(args)[k]))
+            _flare_(args)
+            x.at[x.dn==args.event,"flare"] = "Y"
+        x.to_csv("config/flares.csv", header=True, index=False)
     else: print("\n Program not implemented")
     print("")
     if os.path.exists("models/__pycache__"): os.system("rm -rf models/__pycache__")

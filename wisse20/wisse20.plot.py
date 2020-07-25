@@ -59,16 +59,20 @@ def coloring_twaxes(ax, atype="left", col="red", twcol="k"):
     ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=10))
     return ax
 
-ev = dt.datetime(2014,6,10,11,42)
+ev = dt.datetime(2015,3,11,16,22)
+#ev = dt.datetime(2014,6,10,11,42)
 rio = utils.read_riometer(ev, "ott")
 gos = utils.read_goes(ev)
 fig, ax = plt.subplots(figsize=(3,3),nrows=1,ncols=1,dpi=120)
-sTime,eTime = dt.datetime(2014,6,10,11,35), dt.datetime(2014,6,10,12,5)
+#sTime,eTime = dt.datetime(2014,6,10,11,35), dt.datetime(2014,6,10,12,5)
+sTime,eTime = dt.datetime(2015,3,11,16,10), dt.datetime(2015,3,11,17)
 col = "red"
 ax = coloring_axes(ax)
 font["color"] = col
-ax.semilogy(gos.date,gos.B_AVG,col,linewidth=0.75)
-ax.set_ylim(1e-6,1e-3)
+ax.semilogy(gos.date,gos.B_AVG,col,linewidth=0.75, label="SXR (.1-.8 nm)")
+ax.semilogy(gos.date,gos.A_AVG,col,linewidth=0.75, ls="--", label="HXR (.05-.4 nm)")
+ax.legend(loc=1, scatterpoints=3, ncol=1, fontsize=6, frameon=True)
+ax.set_ylim(1e-8,1e-3)
 ax.set_ylabel(r"Solar Flux, $Wm^{-2}$",fontdict=font)
 font["color"] = "k"
 ax.set_xlabel("Time (UT)",fontdict=font)
@@ -79,16 +83,20 @@ ax.set_xlim(sTime,eTime)
 ax.set_ylim(-.1, 3.)
 ax.set_ylabel("HF Absorption, dB",fontdict=font)
 font["color"] = "darkgreen"
-ax.text(0.5,1.05,"Station - OTT, 10 June 2014",horizontalalignment="center",
+ax.text(0.5,1.05,"Station - OTT, 11 March 2015",horizontalalignment="center",
         verticalalignment="center", transform=ax.transAxes,fontdict=font)
 font["color"] = "k"
-fig.autofmt_xdate(rotation=70,ha="center")
+fig.autofmt_xdate(rotation=25,ha="center")
 fig.savefig("docs-pub/wisse20/fig1.png",bbox_inches="tight")
 
 
-f = "data/sim/2014.06.10.11.42/flare.ott.nc.gz"
+f = "data/sim/2015.03.11.16.22/flare.ott.nc.gz"
 os.system("gzip -d " + f)
 _x_ = Dataset(f.replace(".gz", ""))
+os.system("gzip " + f.replace(".gz", ""))
+f = "data/sim/2015.03.11.16.22/bgc.ott.nc.gz"
+os.system("gzip -d " + f)
+_y_ = Dataset(f.replace(".gz", ""))
 os.system("gzip " + f.replace(".gz", ""))
 times = num2date(_x_.variables["time"][:], _x_.variables["time"].units, _x_.variables["time"].calendar,
         only_use_cftime_datetimes=False)
@@ -98,7 +106,7 @@ i = times.index(ev)
 j = times.index(times[10])
 alts = _x_.variables["alts"][:]
 ne  = _x_.variables["ne"][:]
-fig, axes = plt.subplots(figsize=(3, 6), sharey="row", nrows=2, ncols=1, dpi=100)
+fig, axes = plt.subplots(figsize=(3, 9), sharey="row", nrows=3, ncols=1, dpi=150)
 fig.subplots_adjust(hspace=.3)
 ax = axes[0]
 ax.semilogx(utils.extp(alts, ne[j, :], 64), alts, "darkred", ls="-", label=r"PF, $n_e$", lw=0.8)
@@ -108,7 +116,14 @@ ax.set_xlabel(r"Density, $m^{-3}$", fontdict=font)
 ax.legend(loc=2, scatterpoints=3, ncol=1, fontsize=8, frameon=True)
 ax.set_ylim(70,120)
 ax.set_xlim(1e7,1e12)
-ax = axes[1]
+ax=axes[1]
+ax.semilogx(utils.extp(alts, _y_.variables["col.av.sn"][0,:], 64), alts, "darkred", ls="-", label=r"$n_e$", lw=0.8)
+ax.set_ylabel("Height, km", fontdict=font)
+ax.set_xlabel(r"Collision Frequency, $s^{-1}$", fontdict=font)
+ax.legend(loc=2, scatterpoints=3, ncol=1, fontsize=8, frameon=True)
+ax.set_ylim(70,120)
+#ax.set_xlim(1e7,1e12)
+ax = axes[2]
 ax.set_xlabel(r"$\beta^h$, dB/km", fontdict=font)
 ax.set_ylabel("Height, km", fontdict=font)
 ax.set_ylim(70,120)
@@ -129,10 +144,13 @@ ax.legend(loc=1, scatterpoints=2, ncol=1, fontsize=8, frameon=True)
 fig.savefig("docs-pub/wisse20/fig3.png",bbox_inches="tight")
 
 
-ev = dt.datetime(2014,6,10,11,42)
+#ev = dt.datetime(2014,6,10,11,42)
+ev = dt.datetime(2015,3,11,16,22)
 rio = utils.read_riometer(ev, "ott")
+rio = rio[rio.hf_abs <= 4.]
 fig, ax = plt.subplots(figsize=(3,3),nrows=1,ncols=1,dpi=120)
-sTime,eTime = dt.datetime(2014,6,10,11,35), dt.datetime(2014,6,10,12,5)
+#sTime,eTime = dt.datetime(2014,6,10,11,35), dt.datetime(2014,6,10,12,5)
+sTime,eTime = dt.datetime(2015,3,11,16,10), dt.datetime(2015,3,11,17)
 ax = coloring_axes(ax, col="gray")
 ax.plot(rio.date, rio.hf_abs,color="gray",marker="o", markersize=1,ls="None")
 ax.set_ylim(1e-6,1e-3)
@@ -142,22 +160,24 @@ font["color"] = "k"
 ax.set_xlabel("Time (UT)",fontdict=font)
 ax.grid(False, axis="y")
 ax.set_xlim(sTime,eTime)
-ax.set_ylim(-.1, 2.)
+ax.set_ylim(-.1, 6.)
 ax = coloring_twaxes(ax.twinx(), col="gray")
 ax.plot(times, _x_.variables["drap"][:], "darkred", label=r"$\beta_{DRAP2}$", ls="--", lw=0.8)
-ax.plot(times, _x_.variables["sato"][:], "red", label=r"$\beta_{sato}$", ls="--", lw=0.8)
+#ax.plot(times, _x_.variables["sato"][:], "red", label=r"$\beta_{sato}$", ls="--", lw=0.8)
 ax.plot(times, utils.int_absorption(_x_.variables["abs.ah.sn.o"][:], alts, extpoint=68),
-        "b", label=r"$\beta_{ah}(\nu_{sn})$", ls="-", lw=1.2)
+        "r", label=r"$\beta_{ah}(\nu_{sn})$", ls="-", lw=1.2)
 ax.plot(times, utils.int_absorption(_x_.variables["abs.ah.av.cc.o"][:], alts, extpoint=64),
         "g", label=r"$\beta_{ah}(\nu_{av}^{cc})$", ls="-", lw=0.8)
-#ax.plot(times, utils.int_absorption(_x_.variables["abs.ah.av.mb.o"][:], alts, extpoint=64),
-#        "k", label=r"$\beta_{ah}(\nu_{av}^{mb})$", ls="-", lw=1.2)
+ax.plot(times, utils.int_absorption(_x_.variables["abs.ah.av.mb.o"][:], alts, extpoint=64),
+        "b", label=r"$\beta_{ah}(\nu_{av}^{mb})$", ls="-", lw=1.2)
+ax.plot(times, utils.int_absorption(_x_.variables["abs.sw.ft.o"][:], alts, extpoint=64),
+                "k", label=r"$\beta_{sw}(\nu_{me})$", ls="-", lw=1.2)
 ax.legend(loc=1, scatterpoints=2, ncol=1, fontsize=8, frameon=True)
-ax.set_ylim(-.1, 2.)
+ax.set_ylim(-.1, 6.)
 font["color"] = "k"
 ax.set_ylabel("Modeled HF Absorption, dB",fontdict=font)
 font["color"] = "darkgreen"
-ax.text(0.5,1.05,"Station - OTT, 10 June 2014",horizontalalignment="center",
+ax.text(0.5,1.05,"Station - OTT, 11 March 2015",horizontalalignment="center",
                 verticalalignment="center", transform=ax.transAxes,fontdict=font)
 font["color"] = "k"
 fig.autofmt_xdate(rotation=70,ha="center")
@@ -199,7 +219,7 @@ for i, ev, start, end in zip(range(4), evs, starts, ends):
     ax = coloring_twaxes(ax.twinx(), col="gray")
     if np.mod(i,2) == 0: ax.set_yticklabels([])
     ax.plot(times, _x_.variables["drap"][:], "darkred", label=r"$\beta_{DRAP2}$", ls="--", lw=0.8)
-    ax.plot(times, _x_.variables["sato"][:], "red", label=r"$\beta_{sato}$", ls="--", lw=0.8)
+    #ax.plot(times, _x_.variables["sato"][:], "red", label=r"$\beta_{sato}$", ls="--", lw=0.8)
     ax.plot(times, utils.int_absorption(_x_.variables["abs.ah.sn.o"][:], alts, extpoint=68),
                     "b", label=r"$\beta_{ah}(\nu_{sn})$", ls="-", lw=1.2)
     ax.plot(times, utils.int_absorption(_x_.variables["abs.ah.av.cc.o"][:], alts, extpoint=64),
@@ -218,8 +238,9 @@ for i, ev, start, end in zip(range(4), evs, starts, ends):
     o = {
             "A": utils.int_absorption(_x_.variables["abs.ah.sn.o"][:], alts, extpoint=68),
             "B": utils.int_absorption(_x_.variables["abs.ah.av.cc.o"][:], alts, extpoint=64),
-            "C": _x_.variables["drap"][:],
-            "D": _x_.variables["sato"][:]
+            "c": utils.int_absorption(_x_.variables["abs.ah.av.mb.o"][:], alts, extpoint=64),
+            "D": utils.int_absorption(_x_.variables["abs.sw.ft.o"][:], alts, extpoint=64),
+            "F": _x_.variables["drap"][:],
         }
     utils.Performance("ott", ev, times, o, start, end)
 fig.savefig("docs-pub/wisse20/fig5.png",bbox_inches="tight")

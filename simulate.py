@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument("-irr", "--irradiance", default="EUVAC+", help="Irradiance model (default EUVAC+)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity (default False)")
     parser.add_argument("-pc", "--plot_code", type=int, default=0, help="Plotting code,applicable if --prog==plot (default 0)")
+    parser.add_argument("-sps", "--species", type=int, default=0, help="Species Type (default 0)")
     parser.add_argument("-fr", "--frequency", type=float, default=30, help="Frequency of oprrations in MHz (default 30 MHz)")
     args = parser.parse_args()
     utils.store_cmd(args)

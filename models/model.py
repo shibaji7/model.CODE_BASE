@@ -29,10 +29,10 @@ class Model(object):
         """ Initialize all the parameters """
         self.rio = rio
         self.ev = ev
-        self.sps = ["O2","N2","O","NO","CO","CO2","H2O"]
-        #self.sps = ["O2","N2","O"]
         for k in vars(args).keys():
             setattr(self, k, vars(args)[k])
+        if self.species == 0: self.sps = ["O2","N2","O"]
+        elif self.species == 1: self.sps = ["O2","N2","O","NO","CO","CO2","H2O"]
         self._dir_ = "data/sim/{date}".format(date=self.ev.strftime("%Y.%m.%d.%H.%M"))
         self._init_()
         if hasattr(self, "clear") and self.clear: self._clean_()
