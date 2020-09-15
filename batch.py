@@ -75,6 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("-pc", "--plot_code", type=int, default=0, help="Plotting code,applicable if --prog==plot (default 0)")
     parser.add_argument("-fr", "--frequency", type=float, default=30, help="Frequency of oprrations in MHz (default 30 MHz)")
     parser.add_argument("-sps", "--species", type=int, default=0, help="Species Type (default 0)")
+    parser.add_argument("-a", "--archive", action="store_false", help="Archive data (default True)")
     args = parser.parse_args()
     x = pd.read_csv("config/flares.csv",parse_dates=["dn","start","end"])
     if args.prog == "bgc": 

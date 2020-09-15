@@ -9,6 +9,10 @@ __maintainer__ = "Chakraborty, S."
 __email__ = "shibaji7@vt.edu"
 __status__ = "Research"
 
+
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
 import os
 import numpy as np
 
@@ -36,6 +40,7 @@ def get_riom_loc(stn):
     lat, lon = _o["lat"].tolist()[0], np.mod( (_o["lon"].tolist()[0] + 180), 360 ) - 180
     return lat, lon
 
+dirc = "tElec" # tElec, sim
 class Bgc(object):
     """ Bgc class is dedicated to run in pyton 2.7 and calculate and store the background ionosphere """
 
@@ -50,7 +55,7 @@ class Bgc(object):
         self.lon = lon
         self.species = ["O2","N2","O","NO","CO","CO2","H2O"]
 
-        _dir_ = "data/sim/{date}".format(date=ev.strftime("%Y.%m.%d.%H.%M"))
+        _dir_ = "data/{dirc}/{date}".format(dirc=dirc,date=ev.strftime("%Y.%m.%d.%H.%M"))
         if not os.path.exists(_dir_): os.system("mkdir "+_dir_)
         
         d = int((etime-stime).total_seconds()/60.)
@@ -154,7 +159,7 @@ class Bgc(object):
             p[:] = val
             return
 
-        fname = "data/sim/{dn}/bgc.{stn}.nc.gz".format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
+        fname = "data/{dirc}/{dn}/bgc.{stn}.nc.gz".format(dirc=dirc,dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
         if os.path.exists(fname): os.remove(fname)
         rootgrp = Dataset(fname.replace(".gz",""), "w", format="NETCDF4")
         rootgrp.description = "HF Absorption Model: Background Ionosphere (R:{rio})""".format(rio=self.rio)

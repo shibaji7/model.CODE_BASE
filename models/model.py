@@ -25,7 +25,7 @@ from collision import *
 class Model(object):
     """ 1D model class to run 1D (hight) model functions """
 
-    def __init__(self, rio, ev, args):
+    def __init__(self, rio, ev, args, _dir_="data/sim/{date}"):
         """ Initialize all the parameters """
         self.rio = rio
         self.ev = ev
@@ -33,7 +33,7 @@ class Model(object):
             setattr(self, k, vars(args)[k])
         if self.species == 0: self.sps = ["O2","N2","O"]
         elif self.species == 1: self.sps = ["O2","N2","O","NO","CO","CO2","H2O"]
-        self._dir_ = "data/sim/{date}".format(date=self.ev.strftime("%Y.%m.%d.%H.%M"))
+        self._dir_ = _dir_.format(date=self.ev.strftime("%Y.%m.%d.%H.%M"))
         self._init_()
         if hasattr(self, "clear") and self.clear: self._clean_()
         if hasattr(self, "save_goes") and self.save_goes: self._save_goes_()
@@ -148,19 +148,25 @@ class Model(object):
         if hasattr(self, "save_result") and self.save_result: self._save_()
         return
 
-    def _exp_(self, name, params):
+    def _archive_(self):
+        """ Archive the computation """
+        os.system("mv data/sim/{dn}/ data/sim/{dn}/archive".format(dn=self.ev.strftime("%Y.%m.%d.%H.%M")))
+        return
+
+    def _exp_(self, name, params, save_fname=None):
         """ Experiment specific model run. Provide scale factors of the parameter """
         print("\n Experiment - ", name)
-        self.pg = utils.PointGrid(self.rio, self.ev, self.start, self.end, freq=self.frequency, v=self.verbose)
+        self.pg = utils.PointGrid(self.rio, self.ev, self.start, self.end, freq=self.frequency, v=self.verbose, fname="data/tElec/{dn}/")
         self.ir = Euvac.get_solar_flux(self.ev, self.start, self.end)
         if name == "TElec":
-            fname = "data/sim/{dn}/flare.{stn}.TElec[%.2f].nc.gz"%params["TElec"]
+            if save_fname is None: save_fname = "data/tElec/{dn}/flare.{stn}.TElec[%.2f].nc.gz"%params["TElec"]
             lam = 1.
             self.pg.iri["Te"] = self.pg.iri["Te"] * params["TElec"]
             self.pg._col_ = Collision(self.pg.msis, self.pg.iri, self.pg.iri["Ne"], self.pg.iri["Te"], self.pg.iri["Ti"])
         if name == "lambda": 
-            fname = "data/sim/{dn}/flare.{stn}.lambda[%.2f].nc.gz"%params["lambda"]
+            if save_fname is None: save_fname = "data/tElec/{dn}/flare.{stn}.lambda[%.2f].nc.gz"%params["lambda"]
             lam = params["lambda"]
         self.cm = GPI(self.pg, self.sps, self.ir, lam_const=lam).exe(verbose=self.verbose)
         self.pg.update_grid(self.cm)
-        if hasattr(self, "save_result") and self.save_result: self._save_(fname)
+        if hasattr(self, "save_result") and self.save_result: self._save_(save_fname)
+        if hasattr(self, "archive") and self.archive: self._archive_()

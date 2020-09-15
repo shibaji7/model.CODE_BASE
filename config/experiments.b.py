@@ -128,15 +128,44 @@ def _case0_(args):
     matplotlib.rcParams["mathtext.default"] = "default"
     font = {"family": "serif", "color":  "black", "weight": "normal", "size": 10}
     fonttext = {"family": "serif", "color":  "blue", "weight": "normal", "size": 10}
+    #fig, axes = plt.subplots(figsize=(6, 6), nrows=2, ncols=2, dpi=150)
+    #fig.subplots_adjust(hspace=.3, wspace=.1)
     fig, ax = plt.subplots(figsize=(3, 3), nrows=1, ncols=1, dpi=100)
 
+    #ax = axes[0,0]
+    #ax.loglog(f0*1e-3, haf0, "r", linewidth=1.2, label="Sato (1975)")
+    #ax.loglog(f0*1e-3, haf1, "b", linewidth=1.2, label="DARP2")
+    #ax.set_ylabel("HAF, MHz", fontdict=font)
+    #ax.set_xlim(1e-6,1e-1)
+    #ax.legend(loc=2, scatterpoints=3, fontsize=8, frameon=True)
+    #ax.text(0.2, 1.05, r"(a) $\chi=0^o$", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
+
+    #ax = axes[0,1]
+    #ax.set_yticks([])
+    #ax = ax.twinx()
+    #ax.loglog(fo, l0, "r", linewidth=1.2, label="Sato (1975)")
     ax.loglog(fo, l1, "darkred", ls="--", linewidth=0.8, label="DARP")
     ax.set_xlim(1,200)
     ax.set_ylim(1,1e5)
     ax.set_ylabel("Absorption, dB", fontdict=font)
+    #ax.legend(loc=1, scatterpoints=3, fontsize=8, frameon=True)
     ax.text(0.5, 1.05, r"$\chi=0^o$, $I_{\infty}=2.2\times 10^{-4}$ $Wm^{-2}$", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
 
+    #ax = axes[1,0]
+    #ax.loglog(_f0_, _qo_[:,0], "ro", markersize=1.2, label=r"$\beta_{ah}(\nu_{sn})$")
+    #ax.loglog(_f0_, _qo_[:,1], "go", markersize=0.8, label=r"$\beta_{ah}(\nu_{av}^{cc})$")
+    #ax.loglog(_f0_, _qo_[:,2], "bo", markersize=1.2, label=r"$\beta_{ah}(\nu_{av}^{mb})$")
+    #ax.loglog(_f0_, _qo_[:,3], "ko", markersize=1.2, label=r"$\beta_{sw}(\nu_{me})$")
+    #ax.set_ylabel("HAF, MHz", fontdict=font)
+    #ax.set_xlabel(r"SXR, $Wm^{-2}$", fontdict=font)
+    #ax.set_xlim(1e-6,1e-1)
+    #ax.legend(loc=2, scatterpoints=3, fontsize=8, frameon=True)
+    #ax.text(0.2, 1.05, r"(b) $\chi=0^o$", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
+
+    #ax = axes[1,1]
     ax.set_xlabel("Frequency, MHz", fontdict=font)
+    #ax.set_yticks([])
+    #ax = ax.twinx()
     ax.loglog(fo, utils.smooth(_lo_[:,0,0], 11), "r", linewidth=1.2, label=r"$\beta_{ah}(\nu_{sn})$")
     ax.loglog(fo, utils.smooth(_lo_[:,1,0], 11), "g", linewidth=0.8, label=r"$\beta_{ah}(\nu_{av}^{cc})$")
     ax.loglog(fo, utils.smooth(_lo_[:,2,0], 11), "b", linewidth=1.2, label=r"$\beta_{ah}(\nu_{av}^{mb})$")
@@ -202,7 +231,10 @@ def _case1_(args):
             if i==0:
                 ax.set_ylabel("Observations \n HF Absorption, db",fontdict=font)
             ax.scatter(_X_[_X_.model=="N"].dt, _X_[_X_.model=="N"].db, s=3., color="gray", alpha=0.8, marker="D", label="Ionosonde")
-            
+            #ax.legend(loc=1, scatterpoints=3, fontsize=8, frameon=True)
+            #ax.text(0.35, 1.05, "(a.%d) "%(i+1) + ev.strftime("%Y-%m-%d")+" UT", horizontalalignment="center", 
+            #        verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
+
             fname = "data/sim/{date}/flare.sps.nc.gz".format(date=ev.strftime("%Y.%m.%d.%H.%M"))
             os.system("gzip -d " + fname)
             nc = Dataset(fname.replace(".gz",""))
@@ -223,6 +255,8 @@ def _case1_(args):
             ax.scatter(_X_[_X_.model=="Y"].dt, _X_[_X_.model=="Y"].db, s=1.2, color="darkred", 
                     alpha=0.8, label="Levine et al. (2019)")
             if i==2: ax.legend(bbox_to_anchor=(1.12, 0.9), scatterpoints=3, fontsize=8, frameon=True)
+            #ax.text(0.5, 1.05, "(b.%d) "%(i+1) + ev.strftime("%Y-%m-%d")+" UT, @6.4 MHz", horizontalalignment="center", 
+            #        verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
             i += 1
 
         axes[1,0].set_xlabel("Time (UT)", fontdict=font)
@@ -257,6 +291,16 @@ def _case2_(args):
         fonttext = {"family": "serif", "color":  "blue", "weight": "normal", "size": 6}
         fmt = matplotlib.dates.DateFormatter("%H:%M")
         fig, axes = plt.subplots(figsize=(6, 2), nrows=1, ncols=2, dpi=100)
+        #ax = axes[0]
+        #import bootstrapped.bootstrap as bs
+        #import bootstrapped.stats_functions as bs_stats
+        #from scipy.stats import norm
+        #x = np.linspace(0.5,2,151)
+        #loc = bs.bootstrap(x, stat_func=bs_stats.mean).value
+        #scale = bs.bootstrap(x, stat_func=bs_stats.std).value
+        #ax.plot(x, norm.pdf(x, loc=loc, scale=scale), "r", lw=0.8, alpha=0.6)
+        #ax.text(0.5, 1.05, r"(a) Distribution of $T_d$", horizontalalignment="center",
+        #        verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
         files = glob.glob("data/sim/{dn}/flare*TElec*".format(dn=args.event.strftime("%Y.%m.%d.%H.%M")))
         ax = axes[0]
         ax.xaxis.set_major_formatter(fmt)
@@ -273,6 +317,9 @@ def _case2_(args):
             times = num2date(nc.variables["time"][:], nc.variables["time"].units, nc.variables["time"].calendar)
             times = np.array([x._to_real_datetime() for x in times]).astype("datetime64[ns]")
             times = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) for x in times]
+            #if np.mod(i,20)==0: ax.plot(times, utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:],
+            #    model["alts"], extpoint=68), 5), color=cmap(.2+(i/200)), 
+            #    linewidth=0.6, ls="--", label=r"$T_d$=%.2f"%TElec[i])
             m = pd.DataFrame()
             m["date"] = times
             m["hf_abs"] = utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:], model["alts"], extpoint=68), 5)
@@ -313,47 +360,6 @@ def _case2_(args):
     return
 
 
-def analysis(ax, df, nx="sza", ny="acc", formula="acc ~ sza", wd=5, nyagg="mean"):
-    fonttext = {"family": "serif", "color":  "darkgreen", "weight": "normal", "size": 6}
-    df = df.sort_values(by=nx)
-    avg = df[[nx,ny]].rolling(window=wd).agg({nx: "mean", ny: nyagg}).dropna()
-    model = ols(formula, data=avg)
-    response = model.fit()
-    anova = sm.stats.anova_lm(response, typ=2)
-    ax.plot(df[nx], df[ny], "ro", alpha=0.5, markersize=0.75)
-    ax.plot(avg[nx], avg[ny], "bo", alpha=0.5, markersize=2.)
-    o = response.get_prediction(df)
-    ax.plot(df[nx], o.predicted_mean, "k--", linewidth=1.25, alpha=0.8)
-    ax.fill_between(df[nx], o.predicted_mean - 1.98*np.sqrt(o.var_pred_mean), 
-            o.predicted_mean + 1.98*np.sqrt(o.var_pred_mean), color="k", alpha=0.2)
-    #ax.text(0.2,0.8, "$A^{m}=%.1f$\nm=%.1f\nP(F>)=%.2f"%(df.acc.median(), response.params[0], anova["PR(>F)"][0]), 
-    #        horizontalalignment="center", verticalalignment="center",
-    #        transform=ax.transAxes, fontdict=fonttext)
-    ax.text(0.2,0.8, "$A^{m}=%.2f$\nm=%.2f"%(df.acc.median(), response.params[0]), 
-            horizontalalignment="center", verticalalignment="center",
-            transform=ax.transAxes, fontdict=fonttext)
-    return response, anova 
-
-def parse_2D_data(q, r, theta, zv, k=0):
-    """
-    Method converts scans to "beam" and "slist" or gate
-    """
-    plotParamDF = q[ [r, theta, zv] ]
-    plotParamDF[r] = [int(u/6)*6 for u in plotParamDF[r]]
-    plotParamDF[theta] = [int(u/2)*2 for u in plotParamDF[theta]]
-    plotParamDF[r] = np.round(plotParamDF[r].tolist(), k)
-    plotParamDF[theta] = np.round(plotParamDF[theta].tolist(), k)
-    plotParamDF = plotParamDF.groupby( [r, theta] ).mean().reset_index()
-    plotParamDF = plotParamDF[ [r, theta, zv] ].pivot( r, theta )
-    r = plotParamDF.index.values
-    theta = plotParamDF.columns.levels[1].values
-    R, T  = np.meshgrid( r, theta )
-    # Mask the nan values! pcolormesh can't handle them well!
-    Z = np.ma.masked_where(
-            np.isnan(plotParamDF[zv].values),
-            plotParamDF[zv].values)
-    return R,T*2*np.pi/24,Z,theta
-
 def _stats_(args):
     """ Estimate and plot statistics """
     x = pd.read_csv("config/flare.stats.m.csv")
@@ -363,19 +369,12 @@ def _stats_(args):
         matplotlib.rcParams["ytick.labelsize"] = 12
         matplotlib.rcParams["mathtext.default"] = "default"
         font = {"family": "serif", "color":  "black", "weight": "normal", "size": 12}
-        fonttext = {"family": "serif", "color":  "blue", "weight": "normal", "size": 10}
-        fig1, axes1 = plt.subplots(figsize=(8, 8), nrows=4, ncols=4, dpi=150, sharey="row", sharex="col")
-        fig2, axes2 = plt.subplots(figsize=(6, 6), nrows=2, ncols=2, dpi=130, sharey="all", sharex="all")
-        fig3 = plt.figure(figsize=(12,6))
+        fonttext = {"family": "serif", "color":  "blue", "weight": "normal", "size": 12}
+        fig1, axes1 = plt.subplots(figsize=(9, 12), nrows=4, ncols=3, dpi=90, sharey="row", sharex="col")
         edist = {}
-        txt = [r"\beta_{ah}(\nu_{sn})", r"\beta_{ah}(\nu^{cc}_{sn})",
-                r"\beta_{ah}(\nu^{mb}_{sn})", r"\beta_{sw}(\nu_{me})"]
-        times = [0.7,0.55,0.85,1.0]
-        colors = ["r","g","b","k"]
         for j, nm in enumerate(["sn","cc","mb","me"]):
             df = []
             name = "mRMSE_"+nm
-            dat,prd = [], []
             for i, row in x.iterrows():
                 stn = row["rio"]
                 f = "data/sim/archive/{dn}/skills.{rio}.nc".format(dn=row["dn"].strftime("%Y.%m.%d.%H.%M"), rio=stn)
@@ -384,75 +383,44 @@ def _stats_(args):
                     name:  (d.attrs[name]), "sza": np.median(d["sza"].values), 
                     "local_time": np.median(d["local_time"].values), "mlt": np.mean(d["mlt"].values)})
                 df.append(d.attrs)
-                dat.extend(d["dat"].values.tolist())
-                prd.extend(d["m_"+nm].values.tolist())
+                #print(d.attrs["dPeak"]-d.attrs["mPeak_"+nm])
             df = pd.DataFrame.from_records(df)
+            ux = df[np.abs(df["dPeak"]-d.attrs["mPeak_dr"])<.8]
+            print(np.corrcoef(ux.dPeak, ux["mPeak_dr"]), len(ux))
             df = df[~df.isin([np.nan, np.inf, -np.inf]).any(1)]
+            model = ols("acc ~ sza+local_time+mlt+mlat", data=df)
+            #model = ols(name + "~ sza*local_time*mlt*mlat", data=df)
+            response = model.fit() 
+            anova = sm.stats.anova_lm(response, typ=2)
             edist[nm] = df.acc.tolist()
+            print(anova)
+            #print(response.summary())
             
-            u = pd.DataFrame()
-            u["dat"], u["prd"] = dat, prd
-            u = u.dropna()
-            prd = []
-            u.prd = [dx + times[j]*(d-dx) for d, dx in zip(u.prd,u.dat)]
-            fonttext["color"] = colors[j]
-            ax = axes2[int(j/2),np.mod(j,2)]
-            ax.plot(u.dat, u.prd, color="gray", linestyle="None", marker="o", alpha=0.5, markersize=0.75)
-            ax.plot([0,3],[0,3], "k--",alpha=0.5, linewidth=1.25)
-            ax.set_xlim(0,3)
-            ax.set_ylim(0,3)
-            ax.text(0.2,0.9,"$"+txt[j]+"$\n"+r"$\rho=%.2f$"%np.corrcoef(u.dat,u.prd)[0,1], 
-                    horizontalalignment="center", verticalalignment="center",
-                    transform=ax.transAxes, fontdict=fonttext)
-
-            ax = fig3.add_subplot(241+j, polar=True)
-            R, T, Z, theta  = parse_2D_data(df, "sza", "local_time", "acc")
-            ax.pcolormesh(T, R, Z.T, shading="gouraud", vmin=-.1, vmax=1)
-            ax.set_rlim(20,90)
-            ax.set_xticklabels(["0", "", "12", "", "18", "", "24"])
-            ax.grid(True)
-            ax = fig3.add_subplot(245+j, polar=True)
-            R, T, Z, theta  = parse_2D_data(df, "mlat", "mlt", "acc")
-            im = ax.pcolormesh(T, R, Z.T, shading="gouraud", vmin=-.1, vmax=1)
-            ax.set_rlim(40,80)
-            ax.set_xticklabels(["0", "", "12", "", "18", "", "24"])
-            ax.grid(True)
-
-            fonttext["color"] = "k"
             ax = axes1[j, 0]
-            r, a = analysis(ax, df, nx="sza", ny="acc", formula="acc ~ sza", wd=5)
-            ax = axes1[j, 1]
-            r, a = analysis(ax, df, nx="local_time", ny="acc", formula="acc ~ local_time", wd=10, nyagg=np.median)
-            ax = axes1[j, 2]
-            r, a = analysis(ax, df, nx="mlt", ny="acc", formula="acc ~ mlt", wd=20, nyagg="median")
-            ax = axes1[j, 3]
-            r, a = analysis(ax, df, nx="mlat", ny="acc", formula="acc ~ mlat", wd=10, nyagg="median")
-            ax.text(1.07,0.5, r"$FS[%s]$"%txt[j], horizontalalignment="center", verticalalignment="center", 
-                    transform=ax.transAxes, fontdict=fonttext, rotation=90)
+            sza, acc = running_mean(df.sza, df.acc, dx=5)
+            ax.plot(df.sza, df.acc, "ro", alpha=0.5, markersize=0.75)
+            #x = _create_x_(df.cossza.tolist(), np.mean(df.lat), np.mean(df.logfmax), np.mean(df["lt"]), lp="cossza")
+            #o = r.get_prediction(x[["sza","mlt",""]].values)
+            #m, v = o.predicted_mean, np.sqrt(o.var_pred_mean)
+            #ax.plot(df.sza, o.predicted_mean, "r-", linewidth=0.75, alpha=0.8)
+            #ax.fill_between(df.sza, m - 1.98*v, m + 1.98*v, color="r", alpha=0.2)
 
-        fig1.text(0.01, 0.4, r"$FS = 1-\frac{RMSE_{model}}{RMSE_{DRAP}}$", fontdict=font, rotation=90)
+            ax = axes1[j, 1]
+            ax.plot(df.local_time, df.acc, "ro", alpha=0.5, markersize=0.75)
+
+            ax = axes1[j, 2]
+            ax.plot(df.mlt, df.acc, "ro", alpha=0.5, markersize=0.75)
+
+        axes1[0,0].set_ylabel("RMSE", fontdict=font)
+        axes1[1,0].set_ylabel("RMSE", fontdict=font)
+        axes1[2,0].set_ylabel("RMSE", fontdict=font)
+        axes1[3,0].set_ylabel("RMSE", fontdict=font)
         axes1[3,0].set_xlabel(r"SZA, $\chi(^o)$", fontdict=font)
         axes1[3,1].set_xlabel(r"LT, Hours", fontdict=font)
         axes1[3,2].set_xlabel(r"MLT, Hours", fontdict=font)
-        axes1[3,3].set_xlabel(r"MLAT, $Deg(^o)$", fontdict=font)
-        axes1[0,0].set_ylim(0,1)
-        axes1[1,0].set_ylim(0,1)
-        axes1[2,0].set_ylim(0,0.5)
-        axes1[3,0].set_ylim(-1,0.5)
-        fig1.savefig("_images_/stats.png", bbox_inches="tight")
-
-        axes2[1,0].set_xlabel(r"$\beta$, dB", fontdict=font) 
-        axes2[1,0].set_ylabel(r"$\hat{\beta}$, dB", fontdict=font) 
-        fig2.savefig("_images_/pred.png", bbox_inches="tight")
-
-        cbar = fig3.colorbar(im, ax=np.array(fig3.get_axes()).ravel().tolist(), shrink=0.5)
-        cbar.set_ticks(np.linspace(-.1,1,11))
-        #cbar.set_ticklabels(["poor", "no-skill", "high"])
-        fig3.subplots_adjust(hspace=0.5, wspace=0.5)
-        fig3.savefig("_images_/st.png", bbox_inches="tight")
-        
         from scipy import stats
         print(stats.ttest_rel(edist["mb"], edist["sn"]))
+        fig1.savefig("_images_/stats.png", bbox_inches="tight")
     else:
         xref = pd.read_csv("config/flares.csv", parse_dates=["dn", "start", "end"])
         for i, row in x.iterrows():

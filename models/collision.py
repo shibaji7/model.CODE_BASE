@@ -13,7 +13,7 @@ __status__ = "Research"
 
 
 import numpy as np
-
+np.seterr(divide="ignore", invalid="ignore")
 
 from constant import *
 

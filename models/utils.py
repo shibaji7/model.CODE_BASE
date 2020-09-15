@@ -23,9 +23,15 @@ import scipy.integrate as intg
 from pysolar.solar import get_altitude
 import calendar
 import copy
+import verify
+import xarray
+from timezonefinder import TimezoneFinder
+from dateutil import tz
+import aacgmv2
 
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import Matern
+if sys.version_info.major > 2:
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import Matern
 
 from collision import *
 from absorption import *
@@ -52,7 +58,7 @@ def download_goes_data(dn, sat=15, v=False):
         _, month_end = calendar.monthrange(start_time.year, start_time.month)
         month_end = (start_time.replace(day = 1) + dt.timedelta(days=month_end-1)).strftime("%Y%m%d")
         return month_start, month_end
-    fname = "data/sim/{dnx}/goes/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+    fname = "data/tElec/{dnx}/goes/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
     if not os.path.exists(fname+".gz"):
         month_start, month_end = _get_month_bounds_(dn)
         url = "https://satdat.ngdc.noaa.gov/sem/goes/data/avg/{year}/{month}/goes{sat}/netcdf/"\
@@ -83,7 +89,7 @@ def download_riometer(dn, stn, v=False):
     It stores the dataset into the local drive for future run. It only downloads 1m resolution dataset.
     URL - http://data.phys.ucalgary.ca/sort_by_instrument/riometer/GO-Canada_Rio/txt/
     """
-    fname = "data/sim/{dnx}/rio/{stn}.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
+    fname = "data/tElec/{dnx}/rio/{stn}.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
     if stn != "ott" and  not os.path.exists(fname+".gz"):
         f_name = "norstar_k2_rio-%s_%s_v01.txt" % (stn, dn.strftime("%Y%m%d"))
         base_url = "http://data.phys.ucalgary.ca/sort_by_instrument/riometer/GO-Canada_Rio/txt"\
@@ -129,19 +135,25 @@ def get_riom_loc(stn):
     lat, lon = _o["lat"].tolist()[0], np.mod( (_o["lon"].tolist()[0] + 180), 360 ) - 180
     return lat, lon
 
-def read_goes(dn):
+def read_goes(dn, arc=False):
     """ This method is used to fetch GOES x-ray data for a given day """
-    gzfname = "data/sim/{dnx}/goes/goes.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
-    fname = "data/sim/{dnx}/goes/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+    gzfname = "data/tElec/{dnx}/goes/goes.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+    fname = "data/tElec/{dnx}/goes/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+    if arc:
+        gzfname = "data/tElec/archive/{dnx}/goes/goes.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+        fname = "data/tElec/archive/{dnx}/goes/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
     os.system("gzip -d " + gzfname)
     _o = pd.read_csv(fname,parse_dates=["date"])
     os.system("gzip {fname}".format(fname=fname))
     return _o
 
-def read_riometer(dn, stn):
+def read_riometer(dn, stn, arc=False):
     """ This method is used to fetch riometer absorption data for a given day and station """
-    gzfname = "data/sim/{dnx}/rio/{stn}.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
-    fname = "data/sim/{dnx}/rio/{stn}.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
+    gzfname = "data/tElec/{dnx}/rio/{stn}.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
+    fname = "data/tElec/{dnx}/rio/{stn}.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
+    if arc:
+        gzfname = "data/tElec/archive/{dnx}/rio/{stn}.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
+        fname = "data/tElec/archive/{dnx}/rio/{stn}.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
     if os.path.exists(gzfname): 
         os.system("gzip -d " + gzfname)
         _o = pd.read_csv(fname,parse_dates=["date"])
@@ -175,7 +187,7 @@ class PointGrid(object):
     grid for one latitude an longitude X axis time with 1m resolution  Y axis altitude 1km resolution.
     """
     
-    def __init__(self, rio, ev, stime, etime, bins = 37, freq=30, v=False):
+    def __init__(self, rio, ev, stime, etime, bins = 37, freq=30, v=False, fname="data/sim/{dn}/"):
         self.rio = rio
         self.alts = model["alts"]
         self.start_time = stime
@@ -188,7 +200,7 @@ class PointGrid(object):
         d = int((etime-stime).total_seconds()/60.)
         self.dn = [stime + dt.timedelta(seconds = i*60) for i in range(d)]
        
-        fname = "data/sim/{dn}/bgc.{stn}.nc.gz".format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
+        fname = (fname + "bgc.{stn}.nc.gz").format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
         os.system("gzip -d "+fname)
         self._nc = Dataset(fname.replace(".gz", ""))
         os.system("gzip "+fname.replace(".gz", ""))
@@ -228,6 +240,7 @@ class PointGrid(object):
                 "CO2":self._nc.variables["msis.co2"][:],
                 }
         self.Ne = np.zeros((len(self.dn),len(self.alts)))
+        print(self._nc.variables.keys())
         self.chi = self._nc.variables["chi"][:]
         self._col_ = Collision.load(self._nc)
         self._abs_ = Absorption.load(self._nc)
@@ -250,13 +263,14 @@ def add_chi(ev, rio, start, end):
     lat, lon = get_riom_loc(rio)
     d = int((end-start).total_seconds()/60.)
     dn = [start + dt.timedelta(seconds = i*60) for i in range(d)]
-    fname = "data/sim/{dn}/bgc.{stn}.nc.gz".format(dn=ev.strftime("%Y.%m.%d.%H.%M"), stn=rio)
+    fname = "data/tElec/{dn}/bgc.{stn}.nc.gz".format(dn=ev.strftime("%Y.%m.%d.%H.%M"), stn=rio)
     os.system("gzip -d "+fname)
     rootgrp = Dataset(fname.replace(".gz",""), "a")
     chi = rootgrp.createVariable("chi", "f8", ("ntimes","nalts"))
     chi[:] = calculate_sza(dn, lat, lon, model["alts"])
     chi.description = "Solar Zenith Angle"
     chi.uints = "Deg(o)"
+    print(rootgrp.variables.keys())
     rootgrp.close()
     os.system("gzip "+fname.replace(".gz",""))
     return
@@ -318,7 +332,7 @@ def store_cmd(args):
 class Performance(object):
     """ Class to estimate Skillset """
 
-    def __init__(self, stn, ev, times,  model, start, end, bar=4.):
+    def __init__(self, stn, ev, times, model, start, end, bar=4., alt=None):
         """ Initialize the parameters """
         self.stn = stn
         self.ev = ev
@@ -327,30 +341,83 @@ class Performance(object):
         self.start = start
         self.end = end
         self.bar = bar
+        self.alt = alt
         self._read_data_()
-        self._skill_()
         return
 
     def _read_data_(self):
         """ Read data from GOES and Riometer """
-        gos = read_goes(self.ev)
-        rio = read_riometer(self.ev, self.stn)
-        self.gos = gos[(gos.date>=self.start) & (gos.date<=self.end)]
-        rio = rio[(rio.date>=self.start) & (rio.date<=self.end)]
-        self.rio = rio[rio.hf_abs <= self.bar]
+        gos = read_goes(self.ev, True)
+        rio = read_riometer(self.ev, self.stn, True)
+        self.gos = gos[(gos.date>=self.start) & (gos.date<self.end)]
+        if len(rio) > 0:
+            rio = rio[(rio.date>=self.start) & (rio.date<=self.end)]
+            if not np.isnan(self.bar): self.rio = rio[rio.hf_abs <= self.bar]
+            else: self.rio = rio
+        elif np.isnan(self.alt) and not np.isnan(self.bar): self.alt = self.bar
         y = np.array(self.gos.B_AVG.tolist())
         yn = (y - np.min(y)) / (np.max(y) - np.min(y))
-        self.mx = np.max(self.rio.hf_abs.tolist())
+        if np.isnan(self.alt): self.mx = np.max(self.rio.hf_abs.tolist())
+        else: self.mx = self.alt
         self.yx = self.mx * yn
         return
 
     def _skill_(self):
         """ Estimate skills """
+        self.acc, self.attrs = {}, {}
+        dic = {"MSE":"MSE_{r}", "RMSE":"RMSE_{r}", "MAE":"MAE_{r}", "MdAE":"MdAE_{r}",
+                "nRMSE":"nRMSE_{r}", "MASE":"MASE_{r}", "MAPE":"MAPE_{r}", "MdAPE":"MdAPE_{r}",
+                "MdSymAcc":"MdSymAcc_{r}"}
+        self.acc.update({"t": {"dims": ("t"), "data":self.gos.date.tolist()}})
         for k in self.model.keys():
             d = pd.DataFrame()
             d["date"], d["hf_abs"] = self.times, self.model[k]
-            d = d[(d.date>=self.start) & (d.date<=self.end)]
-            e = np.sqrt(np.mean((self.yx-np.array(d.hf_abs))**2))
-            print("RMSE -", e)
-            print("Err (mx)-", abs(self.mx-np.max(d.hf_abs)))
+            d = d[(d.date>=self.start) & (d.date<self.end)]
+            self.attrs.update(dict((dic[m].format(r=k), v) for (m,v) in verify.accuracy(np.array(d.hf_abs), self.yx).items()))
+            self.attrs.update(dict((dic[m].format(r=k), v) for (m,v) in verify.scaledAccuracy(np.array(d.hf_abs), self.yx).items()))
+            self.attrs.update({"mRMSE_" + k: np.sqrt(np.abs(np.max(d.hf_abs)-self.mx))})
+            self.attrs.update({"mPeak_" + k: np.max(d.hf_abs)})
+            self.acc.update({"e_" + k: {"dims": ("t"), "data": self.yx - np.array(d.hf_abs)}})
+            self.acc.update({"m_" + k: {"dims": ("t"), "data": np.array(d.hf_abs)}})
+        self.acc.update({"dat": {"dims": ("t"), "data": self.yx}})
+        self.attrs.update({"dPeak": self.mx})
+        return self
+
+    def _to_mag_(self, times, lat, lon):
+        mlats, mlons, mlts = [], [], []
+        for t in times:
+            mlat, mlon, mlt = aacgmv2.get_aacgm_coord(lat, lon, 100, t, method="TRACE")
+            mlats.append(mlat)
+            mlons.append(mlon)
+            mlts.append(mlt)
+        return mlats, mlons, mlts
+
+    def _params_(self):
+        """ Extract parameters """
+        times = self.gos.date.tolist()
+        lat, lon = get_riom_loc(self.stn)
+        self.attrs.update({"lat":lat, "lon":lon, "stn": self.stn, "event": self.ev.strftime("%Y.%m.%d.%H.%M")})
+        self.acc.update({"sza": {"dims": ("t"), 
+            "data": calculate_sza(times, lat, lon, np.array([100])).ravel()}})
+        tf = TimezoneFinder()
+        from_zone = tz.tzutc()
+        to_zone = tz.gettz(tf.timezone_at(lng=lon, lat=lat))
+        LT = [t.replace(tzinfo=from_zone).astimezone(to_zone).to_pydatetime() for t in times] 
+        now = self.start.replace(tzinfo=from_zone).astimezone(to_zone).to_pydatetime().replace(hour=0,minute=0,second=0)
+        LT = [(x - now).total_seconds()/3600. for x in LT]
+        self.acc.update({"local_time": {"dims": ("t"), "data": LT}})
+        mlats, mlons, mlts = self._to_mag_(times, lat, lon)
+        self.acc.update({"mlt": {"dims": ("t"), "data": mlts}})
+        self.attrs.update({"mlat": np.mean(mlats)})
+        self.attrs.update({"mlon": np.mean(mlons)})
+        return self
+
+    def _to_netcdf_(self, fname):
+        """ Save to netCDF4 (.nc) file """
+        ds = xarray.Dataset.from_dict(self.acc)
+        ds.attrs = self.attrs
+        print("---------------------Skills----------------------")
+        print(ds)
+        print("-------------------------------------------------")
+        ds.to_netcdf(fname,mode="w")
         return
