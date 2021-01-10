@@ -286,7 +286,7 @@ def _case2_(args):
         ax.fill_between(m.date, mn - st, mn + st, color="r", alpha=0.5, label="95% CI")
         X = np.array(X)
         ax.set_xlim(start, end)
-        ax.text(0.5, 1.05, r"(b) %s UT, %s @30 MHz, $T_d=\frac{T^{90}}{T^{90}_{base}}$"%(args.event.strftime("%Y-%m-%d"), 
+        ax.text(0.5, 1.05, r"(a) %s UT, %s @30 MHz, $T_d=\frac{T^{90}}{T^{90}_{base}}$"%(args.event.strftime("%Y-%m-%d"), 
             args.rio.upper()), horizontalalignment="center",
             verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
         ax.set_ylim(-.1,2.5)
@@ -303,7 +303,7 @@ def _case2_(args):
         ax.set_xlim(.75,1.75)
         ax.axvline(TElec[np.argmin(X)], ls="--", lw=0.4, color="b")
         ax.set_ylabel("RMSE", fontdict=font)
-        ax.text(0.5, 1.05, "(c) Impact of Temperature on RMSE", horizontalalignment="center",
+        ax.text(0.5, 1.05, "(b) Impact of Temperature on RMSE", horizontalalignment="center",
                             verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
         fonttext["size"] = 4
         ax.text(TElec[np.argmin(X)], 0.745, r"$T_d$=%.2f"%TElec[np.argmin(X)], horizontalalignment="center",
@@ -482,7 +482,7 @@ def _stats_(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--prog", default="flare", help="Program code [bgc/flare] (default bgc)")
+    parser.add_argument("-p", "--prog", default="plot", help="Program code [bgc/flare] (default bgc)")
     parser.add_argument("-r", "--rio", default="ott", help="Riometer code (default ott)")
     parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,22), help="Start date (default 2015-3-11T16:22)",
             type=dparser.isoparse)

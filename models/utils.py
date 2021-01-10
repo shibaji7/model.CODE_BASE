@@ -240,7 +240,6 @@ class PointGrid(object):
                 "CO2":self._nc.variables["msis.co2"][:],
                 }
         self.Ne = np.zeros((len(self.dn),len(self.alts)))
-        print(self._nc.variables.keys())
         self.chi = self._nc.variables["chi"][:]
         self._col_ = Collision.load(self._nc)
         self._abs_ = Absorption.load(self._nc)
@@ -347,8 +346,8 @@ class Performance(object):
 
     def _read_data_(self):
         """ Read data from GOES and Riometer """
-        gos = read_goes(self.ev, True)
-        rio = read_riometer(self.ev, self.stn, True)
+        gos = read_goes(self.ev, False)
+        rio = read_riometer(self.ev, self.stn, False)
         self.gos = gos[(gos.date>=self.start) & (gos.date<self.end)]
         if len(rio) > 0:
             rio = rio[(rio.date>=self.start) & (rio.date<=self.end)]
