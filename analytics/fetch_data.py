@@ -219,6 +219,60 @@ class Riometer(object):
         fname = "proc/riometer/{year}/{code}_{dnx}.csv".format(year=dn.year,code=code,dnx=dn.strftime("%Y.%m.%d.%H.%M"))
         if os.path.exists(fname): os.remove(fname)
         return
+    
+class Simulation(object):
+    
+    def __init__(self, dn, code, run_type="bgc"):
+        self.dn = dn
+        self.code = code
+        self.run_type = run_type
+        return
+    
+    def create_remote_local_dir(self, conn):
+        close = False
+        if conn==None: close, conn = True, get_session()
+        self._dir_ = "proc/outputs/{dnx}/{code}/".format(code=self.code,dnx=self.dn.strftime("%Y.%m.%d.%H.%M"))
+        if not os.path.exists(self._dir_): os.system("mkdir -p " + self._dir_)
+        conn.create_remote_dir(self._dir_)
+        if close: conn.close()
+        return
+    
+    def clear_local_folders(self):
+        _dir_ = "proc/outputs/{dnx}/".format(code=self.code,dnx=self.dn.strftime("%Y.%m.%d.%H.%M"))
+        if os.path.exists(_dir_): os.system("rm -rf " + _dir_)
+        return
+    
+    def save_bgc_file(self, conn):
+        bgc_file = self._dir_ + "bgc.nc.gz"
+        close = False
+        if conn==None: close, conn = True, get_session()
+        if os.path.exists(bgc_file): conn.to_remote_FS(bgc_file)
+        if close: conn.close()
+        return
+    
+    def get_bgc_file(self, conn):
+        bgc_file = self._dir_ + "bgc.nc.gz"
+        close = False
+        if conn==None: close, conn = True, get_session()
+        if conn.chek_remote_file_exists(bgc_file): conn.from_remote_FS(bgc_file)
+        if close: conn.close()
+        return
+    
+    def save_flare_file(self, conn):
+        flare_file = self._dir_ + "flare.nc.gz"
+        close = False
+        if conn==None: close, conn = True, get_session()
+        if os.path.exists(flare_file): conn.to_remote_FS(flare_file)
+        if close: conn.close()
+        return
+    
+    def get_flare_file(self, conn):
+        flare_file = self._dir_ + "flare.nc.gz"
+        close = False
+        if conn==None: close, conn = True, get_session()
+        if conn.chek_remote_file_exists(flare_file): conn.from_remote_FS(flare_file)
+        if close: conn.close()
+        return
 
 ################################
 # Fetch GOES bulk request
