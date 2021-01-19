@@ -17,6 +17,7 @@ import os
 import numpy as np
 
 np.random.seed(0)
+import dask
 
 import datetime as dt
 import argparse
@@ -29,9 +30,12 @@ from scipy.interpolate import interp1d
 from pysolar.solar import get_altitude
 import pytz
 
+import sys
+sys.path.append("models/")
 from collision import *
 from absorption import *
 from constant import *
+from fetch_data import Simulation
 
 def get_riom_loc(stn):
     """ This method is to get the location of the riometer """
@@ -54,9 +58,9 @@ class Bgc(object):
         self.lat = lat
         self.lon = lon
         self.species = ["O2","N2","O","NO","CO","CO2","H2O"]
-
-        _dir_ = "data/{dirc}/{date}".format(dirc=dirc,date=ev.strftime("%Y.%m.%d.%H.%M"))
-        if not os.path.exists(_dir_): os.system("mkdir "+_dir_)
+        
+        self.sim = Simulation(self.ev, self.rio, run_type="bgc")
+        self.sim.create_remote_local_dir()
         
         d = int((etime-stime).total_seconds()/60.)
         self.dn = [stime + dt.timedelta(seconds = i*60) for i in range(d)]
@@ -95,46 +99,54 @@ class Bgc(object):
                 "H2O": np.zeros((len(self.dn),len(self.alts))),
                 "CO2": np.zeros((len(self.dn),len(self.alts))),
                 }
+        results = []
         for I,u in enumerate(self.dn):
             self.msis["H2O"][I,:] = self._get_params_("H2O")
             self.msis["NO"][I,:] = self._get_params_("NO")
             self.msis["CO"][I,:] = self._get_params_("CO")
             self.msis["CO2"][I,:] = self._get_params_("CO2")
             for J,h in enumerate(self.alts):
-                p = P(u,lat,lon,h)
-                p.run_iri()
-                p.run_msis()
-                p.run_igrf()
-                self.igrf["Bx"][I,J] = p.Bx # in Tesla
-                self.igrf["By"][I,J] = p.By # in Tesla
-                self.igrf["Bz"][I,J] = p.Bz # in Tesla
-                self.igrf["B"][I,J] = p.B # in Tesla
-                self.iri["Ne"][I,J] = p.ne * 1e6 # in m^-3
-                self.iri["Ni"][I,J] = np.nansum(p.ni.values()) * 1e6 # in m^-3
-                
-                self.iri["ions"]["NO+"][I,J] = p.ni["NO+"] * 1e6 # in m^-3
-                self.iri["ions"]["O2+"][I,J] = p.ni["O2+"] * 1e6 # in m^-3
-                self.iri["ions"]["O+"][I,J] = p.ni["O+"] * 1e6 # in m^-3
-
-                self.iri["Te"][I,J] = p.Te # in kelvin K
-                self.iri["Ti"][I,J] = p.Ti # in kelvin K
-                self.msis["Tn"][I,J] = p.Tn_msis # in kelvin K
-                self.msis["rho"][I,J] = p.rho # in gm/cm^-3
-                self.msis["AR"][I,J] = p.nn["AR"] * 1e6 # in m^-3
-                self.msis["H"][I,J] = p.nn["H"] * 1e6 # in m^-3
-                self.msis["HE"][I,J] = p.nn["HE"] * 1e6 # in m^-3
-                self.msis["N2"][I,J] = p.nn["N2"] * 1e6 # in m^-3
-                self.msis["O"][I,J] = p.nn["O"] * 1e6 # in m^-3
-                self.msis["O2"][I,J] = p.nn["O2"] * 1e6 # in m^-3
-                self.msis["O_anomalous"][I,J] = p.nn["O_anomalous"] * 1e6 # in m^-3
-                nn = (p.nn["AR"] + p.nn["H"] + p.nn["HE"] + p.nn["N"] \
-                        + p.nn["N2"] + p.nn["O"] + p.nn["O2"] + p.nn["O_anomalous"]) * 1e6 # in m^-3
-                self.msis["nn"][I,J] = nn # in m^-3
+                result = dask.delayed(self.populate_grid)(I, J, u, h, lat, lon)
+                results.append(result)
+        dask.compute(*results)
         self._col_ = Collision(self.msis, self.iri, self.iri["Ne"], self.iri["Te"], self.iri["Ti"])
         self._abs_ = Absorption(self.igrf["B"], self._col_, self.iri["Ne"], fo=freq*1e6)
         print("\n Grid point %.2f,%.2f is downloaded." % (lat,lon))
         return
 
+    def populate_grid(self, I, J, u, h, lat, lon):
+        p = P(u,lat,lon,h)
+        p.run_iri()
+        p.run_msis()
+        p.run_igrf()
+        self.igrf["Bx"][I,J] = p.Bx # in Tesla
+        self.igrf["By"][I,J] = p.By # in Tesla
+        self.igrf["Bz"][I,J] = p.Bz # in Tesla
+        self.igrf["B"][I,J] = p.B # in Tesla
+        self.iri["Ne"][I,J] = p.ne * 1e6 # in m^-3
+        self.iri["Ni"][I,J] = np.nansum(list(p.ni.values())) * 1e6 # in m^-3
+        
+        self.iri["ions"]["NO+"][I,J] = p.ni["NO+"] * 1e6 # in m^-3
+        self.iri["ions"]["O2+"][I,J] = p.ni["O2+"] * 1e6 # in m^-3
+        self.iri["ions"]["O+"][I,J] = p.ni["O+"] * 1e6 # in m^-3
+        
+        self.iri["Te"][I,J] = p.Te # in kelvin K
+        self.iri["Ti"][I,J] = p.Ti # in kelvin K
+        self.msis["Tn"][I,J] = p.Tn_msis # in kelvin K
+        self.msis["rho"][I,J] = p.rho # in gm/cm^-3
+        self.msis["AR"][I,J] = p.nn["AR"] * 1e6 # in m^-3
+        self.msis["H"][I,J] = p.nn["H"] * 1e6 # in m^-3
+        self.msis["HE"][I,J] = p.nn["HE"] * 1e6 # in m^-3
+        self.msis["N2"][I,J] = p.nn["N2"] * 1e6 # in m^-3
+        self.msis["O"][I,J] = p.nn["O"] * 1e6 # in m^-3
+        self.msis["O2"][I,J] = p.nn["O2"] * 1e6 # in m^-3
+        self.msis["O_anomalous"][I,J] = p.nn["O_anomalous"] * 1e6 # in m^-3
+        nn = (p.nn["AR"] + p.nn["H"] + p.nn["HE"] + p.nn["N"] \
+              + p.nn["N2"] + p.nn["O"] + p.nn["O2"] + p.nn["O_anomalous"]) * 1e6 # in m^-3
+        self.msis["nn"][I,J] = nn # in m^-3
+        print(" Done Params (u, h, lat, lon):", u, h, lat, lon)
+        return 0
+    
     def _get_params_(self, sp):
         """ Fetch minor species from other system """
         fname = "config/f.e20.FXSD.f19_f19.001.cam.h0.2000-01.nc"
@@ -159,7 +171,8 @@ class Bgc(object):
             p[:] = val
             return
 
-        fname = "data/{dirc}/{dn}/bgc.{stn}.nc.gz".format(dirc=dirc,dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
+        #fname = "data/{dirc}/{dn}/bgc.{stn}.nc.gz".format(dirc=dirc,dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
+        fname = "proc/outputs/{dn}/{stn}/bgc.nc.gz".format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
         if os.path.exists(fname): os.remove(fname)
         rootgrp = Dataset(fname.replace(".gz",""), "w", format="NETCDF4")
         rootgrp.description = "HF Absorption Model: Background Ionosphere (R:{rio})""".format(rio=self.rio)
@@ -248,11 +261,11 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--rio", default="ott", help="Riometer code (default ott)")
     parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,22), help="Start date (default 2015-3-11T16:22)",
             type=dparser.isoparse)
-    parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,15,30), help="Start date (default 2015-3-11T15:30)",
+    parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16,0), help="Start date (default 2015-3-11T15:30)",
             type=dparser.isoparse)
-    parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,17,30), help="End date (default 2015-3-11T17:30)",
+    parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,17,0), help="End date (default 2015-3-11T17:30)",
             type=dparser.isoparse)
-    parser.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity (default False)")
+    parser.add_argument("-v", "--verbose", action="store_false", help="Increase output verbosity (default True)")
     parser.add_argument("-fr", "--frequency", type=float, default=30., help="Op. Freq. in MHz (default 30MHz)")
     args = parser.parse_args()
     if args.verbose:

@@ -228,7 +228,7 @@ class Simulation(object):
         self.run_type = run_type
         return
     
-    def create_remote_local_dir(self, conn):
+    def create_remote_local_dir(self, conn=None):
         close = False
         if conn==None: close, conn = True, get_session()
         self._dir_ = "proc/outputs/{dnx}/{code}/".format(code=self.code,dnx=self.dn.strftime("%Y.%m.%d.%H.%M"))
@@ -242,7 +242,7 @@ class Simulation(object):
         if os.path.exists(_dir_): os.system("rm -rf " + _dir_)
         return
     
-    def save_bgc_file(self, conn):
+    def save_bgc_file(self, conn=None):
         bgc_file = self._dir_ + "bgc.nc.gz"
         close = False
         if conn==None: close, conn = True, get_session()
@@ -250,7 +250,7 @@ class Simulation(object):
         if close: conn.close()
         return
     
-    def get_bgc_file(self, conn):
+    def get_bgc_file(self, conn=None):
         bgc_file = self._dir_ + "bgc.nc.gz"
         close = False
         if conn==None: close, conn = True, get_session()
@@ -258,7 +258,7 @@ class Simulation(object):
         if close: conn.close()
         return
     
-    def save_flare_file(self, conn):
+    def save_flare_file(self, conn=None):
         flare_file = self._dir_ + "flare.nc.gz"
         close = False
         if conn==None: close, conn = True, get_session()
@@ -266,7 +266,7 @@ class Simulation(object):
         if close: conn.close()
         return
     
-    def get_flare_file(self, conn):
+    def get_flare_file(self, conn=None):
         flare_file = self._dir_ + "flare.nc.gz"
         close = False
         if conn==None: close, conn = True, get_session()
@@ -274,15 +274,16 @@ class Simulation(object):
         if close: conn.close()
         return
 
-################################
-# Fetch GOES bulk request
-################################
-Goes.run_goes_downloads()
-################################
-# Test GOES request
-################################
-Goes().get_goes_file(None, dt.datetime(2015,3,11,16,22))
-################################
-# Test Riometer request
-################################
-Riometer().get_riometer_file(None, dt.datetime(2015,3,11,16,22), "ott")
+if __name__ == "__main__":
+    ################################
+    # Fetch GOES bulk request
+    ################################
+    Goes.run_goes_downloads()
+    ################################
+    # Test GOES request
+    ################################
+    Goes().get_goes_file(None, dt.datetime(2015,3,11,16,22))
+    ################################
+    # Test Riometer request
+    ################################
+    Riometer().get_riometer_file(None, dt.datetime(2015,3,11,16,22), "ott")
