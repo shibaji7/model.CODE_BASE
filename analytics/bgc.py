@@ -35,6 +35,7 @@ sys.path.append("models/")
 from collision import *
 from absorption import *
 from constant import *
+import utils
 from fetch_data import Simulation
 
 def get_riom_loc(stn):
@@ -60,58 +61,67 @@ class Bgc(object):
         self.species = ["O2","N2","O","NO","CO","CO2","H2O"]
         
         self.sim = Simulation(self.ev, self.rio, run_type="bgc")
-        self.sim.create_remote_local_dir()
+        if self.sim.check_riometer_data_exists() and self.sim.check_bgc_not_exists():
+            self.sim.create_remote_local_dir()
+
+            self.fname = "proc/outputs/{dn}/{stn}/bgc.nc.gz".format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
+            if os.path.exists(self.fname): os.remove(self.fname)
+            self.ncfile = self.fname.replace(".gz","")
         
-        d = int((etime-stime).total_seconds()/60.)
-        self.dn = [stime + dt.timedelta(seconds = i*60) for i in range(d)]
+            d = int((etime-stime).total_seconds()/60.)
+            self.dn = [stime + dt.timedelta(seconds = i*60) for i in range(d)]
         
-        self.igrf = {
-                "Bx":np.zeros((len(self.dn),len(self.alts))),
-                "By":np.zeros((len(self.dn),len(self.alts))),
-                "Bz":np.zeros((len(self.dn),len(self.alts))),
-                "B":np.zeros((len(self.dn),len(self.alts)))
-                }
-        self.iri = {
-                "Ne":np.zeros((len(self.dn),len(self.alts))),
-                "Ni":np.zeros((len(self.dn),len(self.alts))),
-                "Te":np.zeros((len(self.dn),len(self.alts))),
-                "Ti":np.zeros((len(self.dn),len(self.alts))),
-                "ions":{
-                    "NO+":np.zeros((len(self.dn),len(self.alts))),
-                    "O+":np.zeros((len(self.dn),len(self.alts))),
-                    "O2+":np.zeros((len(self.dn),len(self.alts))),
+            self.igrf = {
+                    "Bx":np.zeros((len(self.dn),len(self.alts))),
+                    "By":np.zeros((len(self.dn),len(self.alts))),
+                    "Bz":np.zeros((len(self.dn),len(self.alts))),
+                    "B":np.zeros((len(self.dn),len(self.alts)))
                     }
-                }
-        self.msis = {
-                "Tn":np.zeros((len(self.dn),len(self.alts))),
-                "rho":np.zeros((len(self.dn),len(self.alts))),
-                "AR":np.zeros((len(self.dn),len(self.alts))),
-                "H":np.zeros((len(self.dn),len(self.alts))),
-                "HE":np.zeros((len(self.dn),len(self.alts))),
-                "N2":np.zeros((len(self.dn),len(self.alts))),
-                "O":np.zeros((len(self.dn),len(self.alts))),
-                "O2":np.zeros((len(self.dn),len(self.alts))),
-                "O_anomalous":np.zeros((len(self.dn),len(self.alts))),
-                "nn": np.zeros((len(self.dn),len(self.alts))),
-                
-                "NO": np.zeros((len(self.dn),len(self.alts))),
-                "CO": np.zeros((len(self.dn),len(self.alts))),
-                "H2O": np.zeros((len(self.dn),len(self.alts))),
-                "CO2": np.zeros((len(self.dn),len(self.alts))),
-                }
-        results = []
-        for I,u in enumerate(self.dn):
-            self.msis["H2O"][I,:] = self._get_params_("H2O")
-            self.msis["NO"][I,:] = self._get_params_("NO")
-            self.msis["CO"][I,:] = self._get_params_("CO")
-            self.msis["CO2"][I,:] = self._get_params_("CO2")
-            for J,h in enumerate(self.alts):
-                result = dask.delayed(self.populate_grid)(I, J, u, h, lat, lon)
-                results.append(result)
-        dask.compute(*results)
-        self._col_ = Collision(self.msis, self.iri, self.iri["Ne"], self.iri["Te"], self.iri["Ti"])
-        self._abs_ = Absorption(self.igrf["B"], self._col_, self.iri["Ne"], fo=freq*1e6)
-        print("\n Grid point %.2f,%.2f is downloaded." % (lat,lon))
+            self.iri = {
+                    "Ne":np.zeros((len(self.dn),len(self.alts))),
+                    "Ni":np.zeros((len(self.dn),len(self.alts))),
+                    "Te":np.zeros((len(self.dn),len(self.alts))),
+                    "Ti":np.zeros((len(self.dn),len(self.alts))),
+                    "ions":{
+                        "NO+":np.zeros((len(self.dn),len(self.alts))),
+                        "O+":np.zeros((len(self.dn),len(self.alts))),
+                        "O2+":np.zeros((len(self.dn),len(self.alts))),
+                        }
+                    }
+            self.chi = np.zeros((len(self.dn),len(self.alts)))
+            self.msis = {
+                    "Tn":np.zeros((len(self.dn),len(self.alts))),
+                    "rho":np.zeros((len(self.dn),len(self.alts))),
+                    "AR":np.zeros((len(self.dn),len(self.alts))),
+                    "H":np.zeros((len(self.dn),len(self.alts))),
+                    "HE":np.zeros((len(self.dn),len(self.alts))),
+                    "N2":np.zeros((len(self.dn),len(self.alts))),
+                    "O":np.zeros((len(self.dn),len(self.alts))),
+                    "O2":np.zeros((len(self.dn),len(self.alts))),
+                    "O_anomalous":np.zeros((len(self.dn),len(self.alts))),
+                    "nn": np.zeros((len(self.dn),len(self.alts))),
+                    
+                    "NO": np.zeros((len(self.dn),len(self.alts))),
+                    "CO": np.zeros((len(self.dn),len(self.alts))),
+                    "H2O": np.zeros((len(self.dn),len(self.alts))),
+                    "CO2": np.zeros((len(self.dn),len(self.alts))),
+                    }
+            results = []
+            _dir_ = os.path.dirname(os.path.abspath(__file__))
+            for I,u in enumerate(self.dn):
+                self.msis["H2O"][I,:] = self._get_params_("H2O")
+                self.msis["NO"][I,:] = self._get_params_("NO")
+                self.msis["CO"][I,:] = self._get_params_("CO")
+                self.msis["CO2"][I,:] = self._get_params_("CO2")
+                for J,h in enumerate(self.alts):
+                    result = dask.delayed(self.populate_grid)(I, J, u, h, lat, lon)
+                    results.append(result)
+            dask.compute(*results)
+            self._col_ = Collision(self.msis, self.iri, self.iri["Ne"], self.iri["Te"], self.iri["Ti"])
+            self._abs_ = Absorption(self.igrf["B"], self._col_, self.iri["Ne"], fo=freq*1e6)
+            print("\n Grid point %.2f,%.2f is downloaded." % (lat,lon))
+            os.chdir(_dir_)
+            self.save()
         return
 
     def populate_grid(self, I, J, u, h, lat, lon):
@@ -119,6 +129,7 @@ class Bgc(object):
         p.run_iri()
         p.run_msis()
         p.run_igrf()
+        self.chi[I,J] = utils.calculate_sza([u], lat, lon, [h])[0,0]
         self.igrf["Bx"][I,J] = p.Bx # in Tesla
         self.igrf["By"][I,J] = p.By # in Tesla
         self.igrf["Bz"][I,J] = p.Bz # in Tesla
@@ -165,28 +176,26 @@ class Bgc(object):
         """ Save the file to local store """
 
         def _set_(key, val, desc, units, format="f8", shape=("ntimes","nalts")):
-            p = rootgrp.createVariable(key,format, shape)
+            p = self.rootgrp.createVariable(key,format, shape)
             p.description = desc
             p.uints = units
             p[:] = val
             return
 
-        #fname = "data/{dirc}/{dn}/bgc.{stn}.nc.gz".format(dirc=dirc,dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
-        fname = "proc/outputs/{dn}/{stn}/bgc.nc.gz".format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
-        if os.path.exists(fname): os.remove(fname)
-        rootgrp = Dataset(fname.replace(".gz",""), "w", format="NETCDF4")
-        rootgrp.description = "HF Absorption Model: Background Ionosphere (R:{rio})""".format(rio=self.rio)
-        rootgrp.history = "Created " + time.ctime(time.time())
-        rootgrp.source = "SuperDARN HF Absorption Model"
-        rootgrp.createDimension("nalts", len(self.alts))
-        rootgrp.createDimension("ntimes", len(self.dn))
-        alts = rootgrp.createVariable("alts","f4",("nalts",))
+        self.rootgrp = Dataset(self.ncfile, "w", format="NETCDF4")
+        self.rootgrp.description = "HF Absorption Model: Background Ionosphere (R:{rio})".format(rio=self.rio)
+        self.rootgrp.history = "Created " + time.ctime(time.time())
+        self.rootgrp.source = "SuperDARN HF Absorption Model"
+        self.rootgrp.createDimension("nalts", len(self.alts))
+        self.rootgrp.createDimension("ntimes", len(self.dn))
+        alts = self.rootgrp.createVariable("alts","f4",("nalts",))
         alts.description = "Altitude values, in km"
         alts[:] = self.alts
-        times = rootgrp.createVariable("time", "f8", ("ntimes",))
+        times = self.rootgrp.createVariable("time", "f8", ("ntimes",))
         times.units = "hours since 1970-01-01 00:00:00.0"
         times.calendar = "julian"
         times[:] = date2num(self.dn,units=times.units,calendar=times.calendar)
+        _set_("chi", self.chi, "Solar Zenith Angle", "Deg(o)")
         _set_("igrf.bx", self.igrf["Bx"], "IGRF Bx component height-time profile", "T")
         _set_("igrf.by", self.igrf["By"], "IGRF By component height-time profile", "T")
         _set_("igrf.bz", self.igrf["Bz"], "IGRF Bz component height-time profile", "T")
@@ -251,8 +260,10 @@ class Bgc(object):
         _set_("abs.sw.sn.r", self._abs_.SW["SN"]["R"], "Absorption (SW-SN-R) height-time profile", "dB")
         _set_("abs.sw.sn.l", self._abs_.SW["SN"]["L"], "Absorption (SW-SN-L) height-time profile", "dB")
 
-        rootgrp.close()
-        os.system("gzip "+fname.replace(".gz",""))
+        self.rootgrp.close()
+        os.system("gzip " + self.ncfile)
+        self.sim.save_bgc_file()
+        self.sim.clear_local_folders()
         return
 
 
@@ -274,5 +285,5 @@ if __name__ == "__main__":
             print("     " + k + "->" + str(vars(args)[k]))
     lat, lon = get_riom_loc(args.rio)
     if args.verbose: print("\n Location - (" + str(lat) + "," + str(lon) + ")")
-    Bgc(args.rio, args.event, lat, lon, args.start, args.end, args.frequency*1e6).save()
+    Bgc(args.rio, args.event, lat, lon, args.start, args.end, args.frequency*1e6)
     os.system("rm -rf models/*.pyc")
