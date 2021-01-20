@@ -226,12 +226,28 @@ class Simulation(object):
         self.dn = dn
         self.code = code
         self.run_type = run_type
+        self._dir_ = "proc/outputs/{dnx}/{code}/".format(code=self.code,dnx=self.dn.strftime("%Y.%m.%d.%H.%M"))
         return
-    
+
+    def check_riometer_data_exists(self, conn=None):
+        chk, close = False, False
+        if conn==None: close, conn = True, get_session()
+        fname = "proc/riometer/{year}/{code}{dnx}_03.txt.gz".format(year=self.dn.year,code=self.code,dnx=self.dn.strftime("%Y%m%d"))
+        if conn.chek_remote_file_exists(fname): chk = True
+        if close: conn.close()
+        return chk
+
+    def check_bgc_not_exists(self, conn=None):
+        close, chk = False, True
+        if conn==None: close, conn = True, get_session()
+        bgc_file = self._dir_ + "bgc.nc.gz"
+        if conn.chek_remote_file_exists(bgc_file): chk = False
+        if close: conn.close()
+        return chk
+
     def create_remote_local_dir(self, conn=None):
         close = False
         if conn==None: close, conn = True, get_session()
-        self._dir_ = "proc/outputs/{dnx}/{code}/".format(code=self.code,dnx=self.dn.strftime("%Y.%m.%d.%H.%M"))
         if not os.path.exists(self._dir_): os.system("mkdir -p " + self._dir_)
         conn.create_remote_dir(self._dir_)
         if close: conn.close()
