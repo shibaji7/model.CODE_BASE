@@ -155,7 +155,7 @@ class Bgc(object):
         nn = (p.nn["AR"] + p.nn["H"] + p.nn["HE"] + p.nn["N"] \
               + p.nn["N2"] + p.nn["O"] + p.nn["O2"] + p.nn["O_anomalous"]) * 1e6 # in m^-3
         self.msis["nn"][I,J] = nn # in m^-3
-        print(" Done Params (u, h, lat, lon):", u, h, lat, lon)
+        #print(" Done Params (u, h, lat, lon):", u, h, lat, lon)
         return 0
     
     def _get_params_(self, sp):

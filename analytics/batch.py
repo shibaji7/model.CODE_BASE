@@ -27,8 +27,8 @@ def batch_mode_bgc_run(start, end, cls):
     for i, event in events.iterrows():
         st, ev, ed = event["peak"] - dt.timedelta(minutes=start), event["peak"], event["peak"] + dt.timedelta(minutes=end)
         for rio in riometers:
-            cmd = command.format(ev=ev.strftime("%Y-%m-%dT%H:%S"), start=st.strftime("%Y-%m-%dT%H:%S"), 
-                    end=ed.strftime("%Y-%m-%dT%H:%S"), rio=rio)
+            cmd = command.format(ev=ev.strftime("%Y-%m-%dT%H:%M:%S"), start=st.strftime("%Y-%m-%dT%H:%M:%S"), 
+                    end=ed.strftime("%Y-%m-%dT%H:%M:%S"), rio=rio)
             print(" Command - ", cmd)
             os.system(cmd)
     return
