@@ -272,9 +272,9 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--rio", default="ott", help="Riometer code (default ott)")
     parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,22), help="Start date (default 2015-3-11T16:22)",
             type=dparser.isoparse)
-    parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16,0), help="Start date (default 2015-3-11T15:30)",
+    parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16), help="Start date (default 2015-3-11T15:30)",
             type=dparser.isoparse)
-    parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,17,0), help="End date (default 2015-3-11T17:30)",
+    parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,17), help="End date (default 2015-3-11T17:30)",
             type=dparser.isoparse)
     parser.add_argument("-v", "--verbose", action="store_false", help="Increase output verbosity (default True)")
     parser.add_argument("-fr", "--frequency", type=float, default=30., help="Op. Freq. in MHz (default 30MHz)")

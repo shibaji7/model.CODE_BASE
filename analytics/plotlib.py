@@ -28,7 +28,6 @@ np.set_printoptions(formatter={"float_kind": lambda x:"{:.2f}".format(x)})
 def plot_rio_locations():
     """ Plot all riometers used for the study """
     fig = plt.figure(figsize=(5,9),dpi=180)
-    #ax = plt.axes(projection=ccrs.LambertConformal(central_longitude=-110, central_latitude=60,cutoff=30))
     ax = plt.axes(projection=ccrs.NearsidePerspective(central_longitude=-110, central_latitude=60))
     kwargs = {}
     kwargs["edgecolor"] = "black"
@@ -44,11 +43,12 @@ def plot_rio_locations():
     g.ylocator = mticker.FixedLocator(range(0,90,10))
     g.xlocator = mticker.FixedLocator(range(-180,180,60))
     ax.plot(np.ones(90)*-135.3, np.arange(90), color="r", linewidth=0.7, linestyle="--", transform=ccrs.PlateCarree())
+    ax.text(-135, 40., "GOES-15", fontdict={"color":"darkblue","size":5}, transform=ccrs.PlateCarree())
     R = pd.read_csv("config/riometers.csv")
     for _, x in R.iterrows():
         ax.scatter(x["lon"], x["lat"], s=0.2, marker="o", color="k", zorder=2, transform=ccrs.PlateCarree())
         ax.scatter(x["lon"], x["lat"], s=15, marker="o", color="darkgreen", zorder=2, transform=ccrs.PlateCarree(), alpha=0.5)
-        ax.text(x["lon"]-2., x["lat"]-2., x["rio"].upper(), fontdict={"color":"darkblue","size":6}, transform=ccrs.PlateCarree())
+        ax.text(x["lon"]+0.5, x["lat"]+0.5, x["rio"].upper(), fontdict={"color":"darkblue","size":5}, transform=ccrs.PlateCarree())
     ax.set_extent([-145, -55, 40, 90], ccrs.PlateCarree())
     fig.savefig("figs/Figure01.png",bbox_inches="tight")
     dtime = dt.datetime(2021, 1, 1)

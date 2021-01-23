@@ -48,7 +48,7 @@ def plot_rio_locations():
         ax.scatter(x["lon"], x["lat"], s=5, marker="o", color="k", zorder=2, transform=ccrs.PlateCarree())
         ax.scatter(x["lon"], x["lat"], s=30, marker="o", color="darkgreen", zorder=2, transform=ccrs.PlateCarree(), alpha=0.5)
         ax.text(x["lon"]-2., x["lat"]-2., x["rio"].upper(), fontdict={"color":"r","size":9}, transform=ccrs.PlateCarree())
-    fig.savefig("_images_/fovs.png",bbox_inches="tight")
+    fig.savefig("figs/fovs.png",bbox_inches="tight")
     return
 
 def plot_parameters(h, lam, b, B, gm, ad, adc, ai):
@@ -74,7 +74,7 @@ def plot_parameters(h, lam, b, B, gm, ad, adc, ai):
             transform=ax.transAxes, fontdict=fonttext)
     ax.set_ylabel("Height, km", fontdict=font)
     ax.set_xlabel("Rate Coefficients / Charge Ratios", fontdict=font)
-    fig.savefig("_images_/params.png",bbox_inches="tight")
+    fig.savefig("figs/params.png",bbox_inches="tight")
     return
 
 def model_outputs(pg, _ind_):
@@ -125,10 +125,10 @@ def model_outputs(pg, _ind_):
         if _i_ == 0: ax.set_ylabel("Height, km", fontdict=font)
         ax.set_xlabel(r"$\beta^h$, dB/km", fontdict=font)
         
-    fig.savefig("_images_/irradiance.png",bbox_inches="tight")
+    fig.savefig("figs/irradiance.png",bbox_inches="tight")
     return
 
-def event_study(ev, stn, pg, stime, etime, fname="_images_/event.png"):
+def event_study(ev, stn, pg, stime, etime, fname="figs/event.png"):
     """ Plot event for study """
     font = {"family": "serif", "color":  "black", "weight": "normal", "size": 10}
     fonttext = {"family": "serif", "color":  "blue", "weight": "normal", "size": 10}
@@ -158,7 +158,10 @@ def event_study(ev, stn, pg, stime, etime, fname="_images_/event.png"):
     ax = axes[1]
     ax.xaxis.set_major_formatter(fmt)
     _abs_ = utils.read_riometer(ev, stn)
-    if len(_abs_)>0: ax.plot(_abs_.date, _abs_.hf_abs, "ko", alpha=0.4, markersize=0.1,label=r"$\beta_{R}$", lw=.4)
+    if len(_abs_)>0: 
+        info, warn = _abs_[_abs_.flag==1], _abs_[_abs_.flag!=1]
+        ax.plot(info.date, info.absorp, "ko", alpha=0.4, markersize=0.3,label=r"$\beta_{R}$", lw=.8)
+        ax.plot(warn.date, warn.absorp, "ro", alpha=0.4, markersize=0.1,label=r"$\beta_{R}$", lw=.4)
     ax.plot(time, pg.drap, "k", label=r"$\beta_{DRAP2}$", ls="--", lw=0.8)
     ax.plot(time, utils.int_absorption(pg._abs_.AH["SN"]["O"], pg.alts, extpoint=68),
             COLOR["AH-SN"], label=r"$\beta_{ah}(\nu_{sn})$", ls="--", lw=0.8)

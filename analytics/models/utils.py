@@ -57,30 +57,16 @@ def get_riom_loc(stn):
     lat, lon = _o["lat"].tolist()[0], np.mod( (_o["lon"].tolist()[0] + 180), 360 ) - 180
     return lat, lon
 
-def read_goes(dn, arc=False):
+def read_goes(dn):
     """ This method is used to fetch GOES x-ray data for a given day """
-    gzfname = "data/tElec/{dnx}/goes/goes.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
-    fname = "data/tElec/{dnx}/goes/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
-    if arc:
-        gzfname = "data/tElec/archive/{dnx}/goes/goes.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
-        fname = "data/tElec/archive/{dnx}/goes/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
-    os.system("gzip -d " + gzfname)
+    fname = "proc/goes/{dnx}.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
     _o = pd.read_csv(fname,parse_dates=["date"])
-    os.system("gzip {fname}".format(fname=fname))
     return _o
 
-def read_riometer(dn, stn, arc=False):
+def read_riometer(dn, stn):
     """ This method is used to fetch riometer absorption data for a given day and station """
-    gzfname = "data/tElec/{dnx}/rio/{stn}.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
-    fname = "data/tElec/{dnx}/rio/{stn}.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
-    if arc:
-        gzfname = "data/tElec/archive/{dnx}/rio/{stn}.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
-        fname = "data/tElec/archive/{dnx}/rio/{stn}.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
-    if os.path.exists(gzfname): 
-        os.system("gzip -d " + gzfname)
-        _o = pd.read_csv(fname,parse_dates=["date"])
-        os.system("gzip {fname}".format(fname=fname))
-    else: _o = pd.DataFrame()
+    fname = "proc/riometer/{year}/{rio}_{dnx}.csv".format(year=dn.year, rio=stn, dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+    _o = pd.read_csv(fname,parse_dates=["date"])
     return _o
 
 def get_height_integrated_absorption(beta, height):
@@ -109,7 +95,7 @@ class PointGrid(object):
     grid for one latitude an longitude X axis time with 1m resolution  Y axis altitude 1km resolution.
     """
     
-    def __init__(self, rio, ev, stime, etime, bins = 37, freq=30, v=False, fname="data/sim/{dn}/"):
+    def __init__(self, rio, ev, stime, etime, bins = 37, freq=30, v=False, fname="proc/outputs/{dn}/{rio}/"):
         self.rio = rio
         self.alts = model["alts"]
         self.start_time = stime
@@ -122,10 +108,8 @@ class PointGrid(object):
         d = int((etime-stime).total_seconds()/60.)
         self.dn = [stime + dt.timedelta(seconds = i*60) for i in range(d)]
        
-        fname = (fname + "bgc.{stn}.nc.gz").format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
-        os.system("gzip -d "+fname)
-        self._nc = Dataset(fname.replace(".gz", ""))
-        os.system("gzip "+fname.replace(".gz", ""))
+        fname = (fname + "bgc.nc").format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), rio=self.rio)
+        self._nc = Dataset(fname)
 
         self.igrf = {
                 "Bx":self._nc.variables["igrf.bx"][:],

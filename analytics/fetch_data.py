@@ -210,7 +210,7 @@ class Riometer(object):
                 data.append([dt.datetime.strptime(day+line[0]+line[1]+line[2],"%Y%m%d %H%M%S"), rabs, flag])
             except: continue
         if len(data) > 0: 
-            data_dict = pd.DataFrame(data, columns=["Date", "Absorp", "Flag"])
+            data_dict = pd.DataFrame(data, columns=["date", "absorp", "flag"])
             data_dict.to_csv(file_name, index=False, header=True)
             print(" File saved  -to- " + file_name)
         return
@@ -222,10 +222,9 @@ class Riometer(object):
     
 class Simulation(object):
     
-    def __init__(self, dn, code, run_type="bgc"):
+    def __init__(self, dn, code):
         self.dn = dn
         self.code = code
-        self.run_type = run_type
         self._dir_ = "proc/outputs/{dnx}/{code}/".format(code=self.code,dnx=self.dn.strftime("%Y.%m.%d.%H.%M"))
         return
 
@@ -236,11 +235,27 @@ class Simulation(object):
         if conn.chek_remote_file_exists(fname): chk = True
         if close: conn.close()
         return chk
+    
+    def check_goes_exists(self, conn=None):
+        chk, close = False, False
+        if conn==None: close, conn = True, get_session()
+        fname = "proc/goes/{dnx}.csv.gz".format(dnx=self.dn.strftime("%Y.%m.%d.%H.%M"))
+        if conn.chek_remote_file_exists(fname): chk = True
+        if close: conn.close()
+        return chk
 
     def check_bgc_not_exists(self, conn=None):
         close, chk = False, True
         if conn==None: close, conn = True, get_session()
         bgc_file = self._dir_ + "bgc.nc.gz"
+        if conn.chek_remote_file_exists(bgc_file): chk = False
+        if close: conn.close()
+        return chk
+    
+    def check_flare_not_exists(self, conn=None):
+        close, chk = False, True
+        if conn==None: close, conn = True, get_session()
+        bgc_file = self._dir_ + "flare.nc.gz"
         if conn.chek_remote_file_exists(bgc_file): chk = False
         if close: conn.close()
         return chk
@@ -270,7 +285,9 @@ class Simulation(object):
         bgc_file = self._dir_ + "bgc.nc.gz"
         close = False
         if conn==None: close, conn = True, get_session()
-        if conn.chek_remote_file_exists(bgc_file): conn.from_remote_FS(bgc_file)
+        if conn.chek_remote_file_exists(bgc_file): 
+            conn.from_remote_FS(bgc_file)
+            os.system("gzip -d " + bgc_file)
         if close: conn.close()
         return
     
@@ -286,7 +303,25 @@ class Simulation(object):
         flare_file = self._dir_ + "flare.nc.gz"
         close = False
         if conn==None: close, conn = True, get_session()
-        if conn.chek_remote_file_exists(flare_file): conn.from_remote_FS(flare_file)
+        if conn.chek_remote_file_exists(flare_file): 
+            conn.from_remote_FS(flare_file)
+            os.system("gzip -d " + bgc_file)
+        if close: conn.close()
+        return
+    
+    def save_image_files(self, conn=None, files=[]):
+        close = False
+        if conn==None: close, conn = True, get_session()
+        for f in files:
+            conn.to_remote_FS(f)
+        if close: conn.close()
+        return
+    
+    def get_image_files(self, conn=None, files=[]):
+        close = False
+        if conn==None: close, conn = True, get_session()
+        for f in files:
+            conn.from_remote_FS(f)
         if close: conn.close()
         return
 

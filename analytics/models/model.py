@@ -13,6 +13,7 @@ import os
 import datetime as dt
 from netCDF4 import Dataset, date2num
 import time
+import traceback
 
 import utils
 from euvac import Euvac
@@ -22,10 +23,12 @@ import plot_lib as plib
 from absorption import *
 from collision import *
 
+from fetch_data import get_session, Goes, Riometer, Simulation
+
 class Model(object):
     """ 1D model class to run 1D (hight) model functions """
 
-    def __init__(self, rio, ev, args, _dir_="data/sim/{date}"):
+    def __init__(self, rio, ev, args, _dir_="proc/outputs/{date}/{rio}/"):
         """ Initialize all the parameters """
         self.rio = rio
         self.ev = ev
@@ -33,34 +36,34 @@ class Model(object):
             setattr(self, k, vars(args)[k])
         if self.species == 0: self.sps = ["O2","N2","O"]
         elif self.species == 1: self.sps = ["O2","N2","O","NO","CO","CO2","H2O"]
-        self._dir_ = _dir_.format(date=self.ev.strftime("%Y.%m.%d.%H.%M"))
-        self._init_()
-        if hasattr(self, "clear") and self.clear: self._clean_()
-        if hasattr(self, "save_goes") and self.save_goes: self._save_goes_()
-        if hasattr(self, "save_riom") and self.save_riom: self._save_riom_()
-        return
-
-    def _save_riom_(self):
-        """ Download and save riometer file """
-        utils.download_riometer(self.ev, self.rio, self.verbose)
-        return
-
-    def _save_goes_(self):
-        """ Download and save goes file """
-        utils.download_goes_data(self.ev, sat=self.sat, v=self.verbose)
+        self._dir_ = _dir_.format(date=self.ev.strftime("%Y.%m.%d.%H.%M"), rio=self.rio)
+        self.sim = Simulation(self.ev, self.rio)
+        self.conn = get_session()
+        self.check_run = False
+        if self.sim.check_riometer_data_exists(self.conn) and self.sim.check_goes_exists(self.conn) and\
+            not self.sim.check_bgc_not_exists(self.conn) and self.sim.check_flare_not_exists(self.conn):
+            self._init_()
+            self.check_run = True
+            self.files = []
         return
 
     def _init_(self):
         """ Initialize the data folder """
-        if not os.path.exists(self._dir_):  os.system("mkdir -p " + self._dir_)
-        if not os.path.exists("{_dir_}/goes".format(_dir_=self._dir_)): os.system("mkdir {_dir_}/goes".format(_dir_=self._dir_))
-        if not os.path.exists("{_dir_}/rio".format(_dir_=self._dir_)): os.system("mkdir {_dir_}/rio".format(_dir_=self._dir_))
+        if not os.path.exists(self._dir_): self.sim.create_remote_local_dir(self.conn)
+        self.download_goes_riometers_bgc()
         return
-
-    def _clean_(self):
-        """ Clean folders and historical files """
-        os.system("rm -rf {_dir_}".format(_dir_=self._dir_))
-        self._init_()
+    
+    def download_goes_riometers_bgc(self):
+        Goes().get_goes_file(self.conn, self.ev)
+        Riometer().get_riometer_file(self.conn, self.ev, self.rio)
+        self.sim.get_bgc_file(self.conn)
+        return
+    
+    def clean(self):
+        Goes().clean_local_file(self.ev)
+        Riometer().clean_local_file(self.ev, self.rio)
+        self.sim.clear_local_folders()
+        self.conn.close()
         return
 
     def _plot_comp_(self):
@@ -69,9 +72,10 @@ class Model(object):
         plib.event_study(self.ev, self.rio, self.pg, self.start, self.end)
         return
 
-    def _save_(self, fname="data/sim/{dn}/flare.{stn}.nc.gz"):
+    def _save_(self, fname="proc/outputs/{date}/{rio}/flare.nc.gz"):
         """ Save simulation """
-        plib.event_study(self.ev, self.rio, self.pg, self.start, self.end, fname=self._dir_+"/event.{rio}.png".format(rio=self.rio))
+        self.files.append(self._dir_+"event.{rio}.png".format(rio=self.rio))
+        plib.event_study(self.ev, self.rio, self.pg, self.start, self.end, fname=self._dir_+"event.{rio}.png".format(rio=self.rio))
         
         def _set_(key, val, desc, units, format="f8", shape=("ntimes","nalts")):
             p = rootgrp.createVariable(key,format, shape)
@@ -80,7 +84,7 @@ class Model(object):
             p[:] = val
             return
         
-        fname = fname.format(dn=self.ev.strftime("%Y.%m.%d.%H.%M"), stn=self.rio)
+        fname = fname.format(date=self.ev.strftime("%Y.%m.%d.%H.%M"), rio=self.rio)
         if os.path.exists(fname): os.remove(fname)
         rootgrp = Dataset(fname.replace(".gz",""), "w", format="NETCDF4")
         rootgrp.description = "HF Absorption Model: EUVAC+ Ionosphere (R:{rio})""".format(rio=self.rio)
@@ -135,22 +139,24 @@ class Model(object):
 
         rootgrp.close()
         os.system("gzip "+fname.replace(".gz",""))
+        self.sim.save_flare_file(self.conn)
+        self.sim.save_image_files(self.conn, self.files)
         return
 
     def run(self):
         """ Run the model """
-        print("\n Modified freq - ", self.frequency)
-        self.pg = utils.PointGrid(self.rio, self.ev, self.start, self.end, freq=self.frequency, v=self.verbose)
-        self.ir = Euvac.get_solar_flux(self.ev, self.start, self.end)
-        self.cm = GPI(self.pg, self.sps, self.ir).exe(verbose=self.verbose)
-        self.pg.update_grid(self.cm)
-        if hasattr(self, "plot_summary") and self.plot_summary: self._plot_comp_()
-        if hasattr(self, "save_result") and self.save_result: self._save_()
-        return
-
-    def _archive_(self):
-        """ Archive the computation """
-        os.system("mv data/sim/{dn}/ data/sim/{dn}/archive".format(dn=self.ev.strftime("%Y.%m.%d.%H.%M")))
+        if self.check_run:
+            print("\n Modified freq - ", self.frequency)
+            try:
+                self.pg = utils.PointGrid(self.rio, self.ev, self.start, self.end, freq=self.frequency, v=self.verbose)
+                self.ir = Euvac.get_solar_flux(self.ev, self.start, self.end)
+                self.cm = GPI(self.pg, self.sps, self.ir).exe(verbose=self.verbose)
+                self.pg.update_grid(self.cm)
+                if hasattr(self, "plot_summary") and self.plot_summary: self._plot_comp_()
+                if hasattr(self, "save_result") and self.save_result: self._save_()
+            except:
+                traceback.print_exc()
+            self.clean()
         return
 
     def _exp_(self, name, params, save_fname=None):
@@ -169,4 +175,3 @@ class Model(object):
         self.cm = GPI(self.pg, self.sps, self.ir, lam_const=lam).exe(verbose=self.verbose)
         self.pg.update_grid(self.cm)
         if hasattr(self, "save_result") and self.save_result: self._save_(save_fname)
-        if hasattr(self, "archive") and self.archive: self._archive_()
