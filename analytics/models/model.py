@@ -101,7 +101,6 @@ class Model(object):
         times.units = "hours since 1970-01-01 00:00:00.0"
         times.calendar = "julian"
         times[:] = date2num(self.pg.dn,units=times.units,calendar=times.calendar)
-        print(" Time len():", len(times[:]))
         _set_("abs.ah.ft.o", self.pg._abs_.AH["FT"]["O"], "Absorption (AH-FT-O) height-time profile", "dB")
         _set_("abs.ah.ft.x", self.pg._abs_.AH["FT"]["X"], "Absorption (AH-FT-X) height-time profile", "dB")
         _set_("abs.ah.ft.r", self.pg._abs_.AH["FT"]["R"], "Absorption (AH-FT-R) height-time profile", "dB")

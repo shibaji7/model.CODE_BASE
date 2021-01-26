@@ -77,6 +77,7 @@ def batch_mode_stats_run(start, end, cls):
                     times = num2date(nc.variables["time"][:], nc.variables["time"].units, nc.variables["time"].calendar)
                     times = np.array([x._to_real_datetime() for x in times]).astype("datetime64[ns]")
                     times = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) for x in times]
+                    print(" Time len():", len(times))
                     model = {
                         "sn": utils.smooth(utils.int_absorption(nc.variables["abs.ah.sn.o"][:], nc["alts"][:], extpoint=68), 5),
                         "avcc": utils.smooth(utils.int_absorption(nc.variables["abs.ah.av.cc.o"][:], nc["alts"][:], extpoint=68), 5),

@@ -29,9 +29,9 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--rio", default="ott", help="Riometer code (default ott)")
     parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,22), help="Start date (default 2015-3-11T16:22)",
                         type=dparser.isoparse)
-    parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16), help="Start date (default 2015-3-11T15:30)",
+    parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16,12), help="Start date (default 2015-3-11T15:30)",
             type=dparser.isoparse)
-    parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,17), help="End date (default 2015-3-11T17:30)",
+    parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,17,12), help="End date (default 2015-3-11T17:30)",
             type=dparser.isoparse)
     parser.add_argument("-ps", "--plot_summary", action="store_true", help="Plot summary report (default False)")
     parser.add_argument("-sr", "--save_result", action="store_false", help="Save results (default True)")
