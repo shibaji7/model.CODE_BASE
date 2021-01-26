@@ -37,6 +37,8 @@ from collision import *
 from absorption import *
 from constant import *
 
+from fetch_data import Simulation, Riometer
+
 def extrap1d(x,y,kind="linear"):
     """ This method is used to extrapolate 1D paramteres """
     interpolator = interp1d(x,y,kind=kind)
@@ -225,20 +227,20 @@ def estimate_error(m, d, kind="rmse"):
     """ Estimate error between model and data """
     xsec = [(x-m.date.tolist()[0]).total_seconds() for x in m.date]
     xnsec =  [(x-m.date.tolist()[0]).total_seconds() for x in d.date]
-    dx = interp1d(xsec, m.hf_abs)(xnsec)
-    e = np.sqrt(np.mean((dx-np.array(d.hf_abs.tolist()))**2))
+    dx = interp1d(xsec, m.absorp)(xnsec)
+    e = np.sqrt(np.mean((dx-np.array(d.absorp.tolist()))**2))
     return e
 
 def store_cmd(args):
     """ Store the commands """
-
     return
 
 class Performance(object):
     """ Class to estimate Skillset """
 
-    def __init__(self, stn, ev, times, model, start, end, bar=4., alt=None):
+    def __init__(self, conn, stn, ev, times, model, start, end, bar=4., alt=None):
         """ Initialize the parameters """
+        self.conn = conn
         self.stn = stn
         self.ev = ev
         self.times = times
@@ -247,24 +249,35 @@ class Performance(object):
         self.end = end
         self.bar = bar
         self.alt = alt
-        self._read_data_()
+        self.sim = Simulation(ev, stn)
+        self.riom = Riometer()
+        self.perf = False
+        if self.sim.check_riometer_data_exists(self.conn) and self.sim.check_goes_exists(self.conn) and \
+            not self.sim.check_flare_not_exists(self.conn):
+            self.perf = True
+            self._read_data_()
         return
 
     def _read_data_(self):
         """ Read data from GOES and Riometer """
-        gos = read_goes(self.ev, False)
-        rio = read_riometer(self.ev, self.stn, False)
+        gos = read_goes(self.ev)
+        rio = read_riometer(self.ev, self.stn)
         self.gos = gos[(gos.date>=self.start) & (gos.date<self.end)]
         if len(rio) > 0:
             rio = rio[(rio.date>=self.start) & (rio.date<=self.end)]
-            if not np.isnan(self.bar): self.rio = rio[rio.hf_abs <= self.bar]
+            if not np.isnan(self.bar): self.rio = rio[rio.absorp <= self.bar]
             else: self.rio = rio
         elif np.isnan(self.alt) and not np.isnan(self.bar): self.alt = self.bar
         y = np.array(self.gos.B_AVG.tolist())
         yn = (y - np.min(y)) / (np.max(y) - np.min(y))
-        if np.isnan(self.alt): self.mx = np.max(self.rio.hf_abs.tolist())
+        if np.isnan(self.alt): self.mx = np.max(self.rio.absorp.tolist())
         else: self.mx = self.alt
         self.yx = self.mx * yn
+        return
+    
+    def run(self):
+        self._skill_()
+        self._params_()
         return
 
     def _skill_(self):
@@ -317,12 +330,14 @@ class Performance(object):
         self.attrs.update({"mlon": np.mean(mlons)})
         return self
 
-    def _to_netcdf_(self, fname):
+    def _to_netcdf_(self, fname, verbose=False):
         """ Save to netCDF4 (.nc) file """
         ds = xarray.Dataset.from_dict(self.acc)
         ds.attrs = self.attrs
-        print("---------------------Skills----------------------")
-        print(ds)
-        print("-------------------------------------------------")
+        if verbose:
+            print("---------------------Skills----------------------")
+            print(ds)
+            print("-------------------------------------------------")
         ds.to_netcdf(fname,mode="w")
+        os.system("gzip " + fname)
         return

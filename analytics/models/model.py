@@ -74,8 +74,10 @@ class Model(object):
 
     def _save_(self, fname="proc/outputs/{date}/{rio}/flare.nc.gz"):
         """ Save simulation """
-        self.files.append(self._dir_+"event.{rio}.png".format(rio=self.rio))
-        plib.event_study(self.ev, self.rio, self.pg, self.start, self.end, fname=self._dir_+"event.{rio}.png".format(rio=self.rio))
+        try:
+            plib.event_study(self.ev, self.rio, self.pg, self.start, self.end, fname=self._dir_+"event.{rio}.png".format(rio=self.rio))
+            self.files.append(self._dir_+"event.{rio}.png".format(rio=self.rio))
+        except: traceback.print_exc()
         
         def _set_(key, val, desc, units, format="f8", shape=("ntimes","nalts")):
             p = rootgrp.createVariable(key,format, shape)
@@ -99,6 +101,7 @@ class Model(object):
         times.units = "hours since 1970-01-01 00:00:00.0"
         times.calendar = "julian"
         times[:] = date2num(self.pg.dn,units=times.units,calendar=times.calendar)
+        print(" Time len():", len(times[:]))
         _set_("abs.ah.ft.o", self.pg._abs_.AH["FT"]["O"], "Absorption (AH-FT-O) height-time profile", "dB")
         _set_("abs.ah.ft.x", self.pg._abs_.AH["FT"]["X"], "Absorption (AH-FT-X) height-time profile", "dB")
         _set_("abs.ah.ft.r", self.pg._abs_.AH["FT"]["R"], "Absorption (AH-FT-R) height-time profile", "dB")
@@ -140,7 +143,7 @@ class Model(object):
         rootgrp.close()
         os.system("gzip "+fname.replace(".gz",""))
         self.sim.save_flare_file(self.conn)
-        self.sim.save_image_files(self.conn, self.files)
+        if len(self.files) > 0: self.sim.save_image_files(self.conn, self.files)
         return
 
     def run(self):

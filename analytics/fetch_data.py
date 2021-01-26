@@ -206,8 +206,12 @@ class Riometer(object):
             x = np.nan
             line = list(filter(None,line.replace("\n","").split(" ")))
             try: 
-                rabs, flag = float(line[8]), int(line[9])
-                data.append([dt.datetime.strptime(day+line[0]+line[1]+line[2],"%Y%m%d %H%M%S"), rabs, flag])
+                if len(line) == 8:
+                    rabs, flag = float(line[6]), int(line[7])
+                    data.append([dt.datetime.strptime(day+line[0].replace(":",""),"%Y%m%d %H%M%S"), rabs, flag])
+                else:
+                    rabs, flag = float(line[8]), int(line[9])
+                    data.append([dt.datetime.strptime(day+line[0]+line[1]+line[2],"%Y%m%d %H%M%S"), rabs, flag])
             except: continue
         if len(data) > 0: 
             data_dict = pd.DataFrame(data, columns=["date", "absorp", "flag"])
@@ -255,8 +259,16 @@ class Simulation(object):
     def check_flare_not_exists(self, conn=None):
         close, chk = False, True
         if conn==None: close, conn = True, get_session()
-        bgc_file = self._dir_ + "flare.nc.gz"
-        if conn.chek_remote_file_exists(bgc_file): chk = False
+        flare_file = self._dir_ + "flare.nc.gz"
+        if conn.chek_remote_file_exists(flare_file): chk = False
+        if close: conn.close()
+        return chk
+    
+    def check_skill_not_exists(self, conn=None):
+        close, chk = False, True
+        if conn==None: close, conn = True, get_session()
+        skill_file = self._dir_ + "skill.nc.gz"
+        if conn.chek_remote_file_exists(skill_file): chk = False
         if close: conn.close()
         return chk
 
@@ -305,7 +317,25 @@ class Simulation(object):
         if conn==None: close, conn = True, get_session()
         if conn.chek_remote_file_exists(flare_file): 
             conn.from_remote_FS(flare_file)
-            os.system("gzip -d " + bgc_file)
+            os.system("gzip -d " + flare_file)
+        if close: conn.close()
+        return
+    
+    def save_skill_file(self, conn=None):
+        skill_file = self._dir_ + "skill.nc.gz"
+        close = False
+        if conn==None: close, conn = True, get_session()
+        if os.path.exists(skill_file): conn.to_remote_FS(skill_file)
+        if close: conn.close()
+        return
+    
+    def get_skill_file(self, conn=None):
+        skill_file = self._dir_ + "skill.nc.gz"
+        close = False
+        if conn==None: close, conn = True, get_session()
+        if conn.chek_remote_file_exists(skill_file): 
+            conn.from_remote_FS(skill_file)
+            os.system("gzip -d " + skill_file)
         if close: conn.close()
         return
     
