@@ -60,7 +60,7 @@ class Bgc(object):
         self.lon = lon
         self.species = ["O2","N2","O","NO","CO","CO2","H2O"]
         
-        self.sim = Simulation(self.ev, self.rio, run_type="bgc")
+        self.sim = Simulation(self.ev, self.rio)
         if self.sim.check_riometer_data_exists() and self.sim.check_bgc_not_exists():
             self.sim.create_remote_local_dir()
 

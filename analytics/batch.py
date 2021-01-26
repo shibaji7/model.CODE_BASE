@@ -106,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--start", default=10, help="Start minutes delayed by some time", type=float)
     parser.add_argument("-e", "--end", default=50, help="End minutes delayed by some time", type=float)
     parser.add_argument("-v", "--verbose", action="store_false", help="Increase output verbosity (default True)")
-    parser.add_argument("-p", "--prog", default="stats", help="Program code [flare/bgc/stats] (default bgc)")
+    parser.add_argument("-p", "--prog", default="bgc", help="Program code [flare/bgc/stats] (default bgc)")
     args = parser.parse_args()
     if args.verbose:
         print("\n Parameter list for Bgc simulation ")
