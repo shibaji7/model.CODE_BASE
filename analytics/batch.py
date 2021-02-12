@@ -19,6 +19,7 @@ import datetime as dt
 import argparse
 import pandas as pd
 from netCDF4 import Dataset, num2date
+import xarray
 import traceback
 
 import sys
@@ -66,7 +67,7 @@ def batch_mode_stats_run(start, end, cls):
         for rio in riometers:
             sim = Simulation(ev, rio)
             if sim.check_riometer_data_exists(conn) and sim.check_goes_exists(conn) and\
-                not sim.check_flare_not_exists(conn) and sim.check_skill_not_exists(conn):
+                not sim.check_flare_not_exists(conn) and sim.check_skill_not_exists(conn):                
                 Riometer().get_riometer_file(conn, ev, rio)
                 _dir_ = "proc/outputs/{dnx}/{code}/".format(code=rio,dnx=ev.strftime("%Y.%m.%d.%H.%M"))
                 skill_file = _dir_ + "skill.nc"
@@ -94,10 +95,39 @@ def batch_mode_stats_run(start, end, cls):
                     traceback.print_exc()
                 Riometer().clean_local_file(ev, rio)
                 sim.clear_local_folders()
-                #break
         Goes().clean_local_file(ev)
-        #break
     conn.close()
+    return
+
+def skills_nc2csv(start, end, cls):
+    def fetch_SS(dat, nume, base=""):
+        return 1 - (dat[base + "RMSE_" + nume]/dat[base + "RMSE_dr"])
+    riometers = pd.read_csv("config/riometers.csv").rio.tolist()
+    events = pd.read_csv("config/event-stats-list.csv", parse_dates=["start", "end", "peak"])
+    events = events[events["class"].str.contains(cls)]
+    conn = get_session()
+    records = []
+    for i, event in events.iterrows():
+        st, ev, ed = event["peak"] - dt.timedelta(minutes=start), event["peak"], event["peak"] + dt.timedelta(minutes=end)
+        for rio in riometers:
+            sim = Simulation(ev, rio)
+            if not sim.check_skill_not_exists(conn):
+                _dir_ = "proc/outputs/{dnx}/{code}/".format(code=rio,dnx=ev.strftime("%Y.%m.%d.%H.%M"))
+                if not os.path.exists(_dir_): os.system("mkdir -p " + _dir_)
+                sim.get_skill_file(conn)
+                xdata = xarray.open_dataset(_dir_+"skill.nc")
+                attrs = xdata.attrs
+                rec = {
+                        "SZA": xdata["sza"].values.mean(), "LT": xdata["local_time"].values.mean(), "mlt": xdata["mlt"].values.mean(),
+                        "mlat": xdata.attrs["mlat"], "lat": xdata.attrs["lat"], "rio": rio, "date": ev, 
+                        "S_sn": fetch_SS(attrs, "sn"), "mS_sn": fetch_SS(attrs, "sn", "m"),
+                        "S_avcc": fetch_SS(attrs, "avcc"), "mS_avcc": fetch_SS(attrs, "avcc", "m"),
+                        "S_avmb": fetch_SS(attrs, "avmb"), "mS_avmb": fetch_SS(attrs, "avmb", "m"),
+                        "S_sw": fetch_SS(attrs, "sw"), "mS_sw": fetch_SS(attrs, "sw", "m")
+                      }
+                records.append(rec)
+            sim.clear_local_folders()
+    pd.DataFrame.from_records(records).to_csv("config/skills_%s.csv"%cls, index=False, float_format="%.3f")
     return
 
 if __name__ == "__main__":
@@ -106,7 +136,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--start", default=10, help="Start minutes delayed by some time", type=float)
     parser.add_argument("-e", "--end", default=50, help="End minutes delayed by some time", type=float)
     parser.add_argument("-v", "--verbose", action="store_false", help="Increase output verbosity (default True)")
-    parser.add_argument("-p", "--prog", default="bgc", help="Program code [flare/bgc/stats] (default bgc)")
+    parser.add_argument("-p", "--prog", default="tocsv", help="Program code [flare/bgc/stats/tocsv] (default bgc)")
     args = parser.parse_args()
     if args.verbose:
         print("\n Parameter list for Bgc simulation ")
@@ -115,3 +145,4 @@ if __name__ == "__main__":
     if args.prog=="bgc": batch_mode_bgc_run(args.start, args.end, args.cls)
     if args.prog=="flare": batch_mode_flare_run(args.start, args.end, args.cls)
     if args.prog=="stats": batch_mode_stats_run(args.start, args.end, args.cls)
+    if args.prog=="tocsv": skills_nc2csv(args.start, args.end, args.cls)
