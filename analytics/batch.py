@@ -118,7 +118,8 @@ def skills_nc2csv(start, end, cls):
                 xdata = xarray.open_dataset(_dir_+"skill.nc")
                 attrs = xdata.attrs
                 rec = {
-                        "SZA": xdata["sza"].values.mean(), "LT": xdata["local_time"].values.mean(), "mlt": xdata["mlt"].values.mean(),
+                        "sza": xdata["sza"].values.mean(), "local_time": xdata["local_time"].values.mean(), 
+                        "mlt": xdata["mlt"].values.mean(),
                         "mlat": xdata.attrs["mlat"], "lat": xdata.attrs["lat"], "rio": rio, "date": ev, 
                         "S_sn": fetch_SS(attrs, "sn"), "mS_sn": fetch_SS(attrs, "sn", "m"),
                         "S_avcc": fetch_SS(attrs, "avcc"), "mS_avcc": fetch_SS(attrs, "avcc", "m"),
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--start", default=10, help="Start minutes delayed by some time", type=float)
     parser.add_argument("-e", "--end", default=50, help="End minutes delayed by some time", type=float)
     parser.add_argument("-v", "--verbose", action="store_false", help="Increase output verbosity (default True)")
-    parser.add_argument("-p", "--prog", default="tocsv", help="Program code [flare/bgc/stats/tocsv] (default bgc)")
+    parser.add_argument("-p", "--prog", default="flare", help="Program code [flare/bgc/stats/tocsv] (default bgc)")
     args = parser.parse_args()
     if args.verbose:
         print("\n Parameter list for Bgc simulation ")

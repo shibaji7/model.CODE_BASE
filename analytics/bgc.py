@@ -114,9 +114,9 @@ class Bgc(object):
                 self.msis["CO"][I,:] = self._get_params_("CO")
                 self.msis["CO2"][I,:] = self._get_params_("CO2")
                 for J,h in enumerate(self.alts):
-                    result = dask.delayed(self.populate_grid)(I, J, u, h, lat, lon)
-                    results.append(result)
-            dask.compute(*results)
+                    self.populate_grid(I, J, u, h, lat, lon)
+                    #results.append(result)
+            #dask.compute(*results)
             self._col_ = Collision(self.msis, self.iri, self.iri["Ne"], self.iri["Te"], self.iri["Ti"])
             self._abs_ = Absorption(self.igrf["B"], self._col_, self.iri["Ne"], fo=freq*1e6)
             print("\n Grid point %.2f,%.2f is downloaded." % (lat,lon))
@@ -155,7 +155,7 @@ class Bgc(object):
         nn = (p.nn["AR"] + p.nn["H"] + p.nn["HE"] + p.nn["N"] \
               + p.nn["N2"] + p.nn["O"] + p.nn["O2"] + p.nn["O_anomalous"]) * 1e6 # in m^-3
         self.msis["nn"][I,J] = nn # in m^-3
-        #print(" Done Params (u, h, lat, lon):", u, h, lat, lon)
+        print(" Done Params (u, h, lat, lon):", u, h, lat, lon)
         return 0
     
     def _get_params_(self, sp):
@@ -270,7 +270,7 @@ class Bgc(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--rio", default="ott", help="Riometer code (default ott)")
-    parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,22), help="Start date (default 2015-3-11T16:22)",
+    parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,20), help="Start date (default 2015-3-11T16:22)",
             type=dparser.isoparse)
     parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16), help="Start date (default 2015-3-11T15:30)",
             type=dparser.isoparse)

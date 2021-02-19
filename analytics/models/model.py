@@ -41,7 +41,7 @@ class Model(object):
         self.conn = get_session()
         self.check_run = False
         if self.sim.check_riometer_data_exists(self.conn) and self.sim.check_goes_exists(self.conn) and\
-            not self.sim.check_bgc_not_exists(self.conn) and self.sim.check_flare_not_exists(self.conn):
+            not self.sim.check_bgc_not_exists(self.conn) and not self.sim.check_flare_not_exists(self.conn):
             self._init_()
             self.check_run = True
             self.files = []

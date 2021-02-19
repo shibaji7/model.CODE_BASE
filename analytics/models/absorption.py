@@ -39,7 +39,7 @@ def C(p, y):
     return cy / gamma_factorial(p)
 
 
-def calculate_sw_RL_abs(Bo, Ne, nu, fo=30e6, nu_sw_r = 2.5):
+def calculate_sw_RL_abs(Bo, Ne, nu, fo=30e6, nu_sw_r = 1.):
     if Ne > 0. and Bo > 0. and nu > 0. and (not np.isnan(Ne)) \
             and (not np.isnan(Bo)) and (not np.isnan(nu)):
         k = (2*np.pi*fo) / pconst["c"]
@@ -57,7 +57,7 @@ def calculate_sw_RL_abs(Bo, Ne, nu, fo=30e6, nu_sw_r = 2.5):
     return R, L
 
 
-def calculate_sw_OX_abs(Bo, Ne, nu, fo=30e6, nu_sw_r = 2.5):
+def calculate_sw_OX_abs(Bo, Ne, nu, fo=30e6, nu_sw_r = 1.):
     if Ne > 0. and Bo > 0. and nu > 0. and (not np.isnan(Ne)) \
             and (not np.isnan(Bo)) and (not np.isnan(nu)):
         k = (2*np.pi*fo) / pconst["c"]
@@ -104,7 +104,7 @@ class Absorption(object):
     fo = operating frequency
     """
 
-    def __init__(self, Bo, coll, Ne, fo=30e6, nu_sw_r=2.5, _run_=True):
+    def __init__(self, Bo, coll, Ne, fo=30e6, nu_sw_r=1., _run_=True):
         if _run_:
             self.Bo = Bo
             self.Ne = Ne
