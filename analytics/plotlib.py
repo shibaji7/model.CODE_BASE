@@ -55,9 +55,10 @@ def plot_rio_locations():
     ax.text(-135, 40., "GOES-15", fontdict={"color":"darkblue","size":5}, transform=ccrs.PlateCarree())
     R = pd.read_csv("config/riometers.csv")
     for _, x in R.iterrows():
-        ax.scatter(x["lon"], x["lat"], s=0.2, marker="o", color="k", zorder=2, transform=ccrs.PlateCarree())
-        ax.scatter(x["lon"], x["lat"], s=15, marker="o", color="darkgreen", zorder=2, transform=ccrs.PlateCarree(), alpha=0.5)
-        ax.text(x["lon"]+0.5, x["lat"]+0.5, x["rio"].upper(), fontdict={"color":"darkblue","size":5}, transform=ccrs.PlateCarree())
+        if x["rio"] != "sps":
+            ax.scatter(x["lon"], x["lat"], s=0.2, marker="o", color="k", zorder=2, transform=ccrs.PlateCarree())
+            ax.scatter(x["lon"], x["lat"], s=15, marker="o", color="darkgreen", zorder=2, transform=ccrs.PlateCarree(), alpha=0.5)
+            ax.text(x["lon"]+0.5, x["lat"]+0.5, x["rio"].upper(), fontdict={"color":"darkblue","size":5}, transform=ccrs.PlateCarree())
     ax.set_extent([-145, -55, 40, 90], ccrs.PlateCarree())
     fig.savefig("figs/Figure01.png",bbox_inches="tight")
     dtime = dt.datetime(2021, 1, 1)
@@ -71,8 +72,8 @@ def plot_rio_locations():
 
 def analysis_plot():
     def fit_mod(y, x=np.arange(10,500), lim=55):
-        yf = utils.extrap1d(x[lim:], y[lim:], kind="linear")
-        return yf(x)
+        yf = utils.extrap1d(x[lim:], np.log10(y[lim:]), kind="linear")
+        return 10**yf(x)
     rio = "ott"
     date = dt.datetime(2015,3,11,16,20)
     sim = Simulation(date, rio)
@@ -96,10 +97,10 @@ def analysis_plot():
     ax.set_xlim(1e6,1e12)
     ax = axes[0,1]
     ax.set_xlabel(r"Density, $m^{-3}$")
-    ax.semilogx(_ncf.variables["ne"][20,:], alt, color="r", ls="--", lw=1., label=r"$n_e$")
-    ax.semilogx(_ncf.variables["ni"][20,:], np.arange(10,500), color="g", ls="--", lw=1., label=r"$n^+$")
-    ax.semilogx(_ncf.variables["ni-"][20,:], np.arange(10,500), color="b", ls="--", lw=1., label=r"$n^-$")
-    ax.semilogx(_ncf.variables["nix"][20,:], np.arange(10,500), color="gold", ls="--", lw=1., label=r"$n_x^+$")
+    ax.semilogx(fit_mod(_ncf.variables["ne"][20,:], lim=60), alt, color="r", ls="--", lw=1., label=r"$n_e$")
+    ax.semilogx(fit_mod(_ncf.variables["ni"][20,:], lim=60), np.arange(10,500), color="g", ls="--", lw=1., label=r"$n^+$")
+    ax.semilogx(fit_mod(_ncf.variables["ni-"][20,:], lim=60), np.arange(10,500), color="b", ls="--", lw=1., label=r"$n^-$")
+    ax.semilogx(fit_mod(_ncf.variables["nix"][20,:], lim=60), np.arange(10,500), color="gold", ls="--", lw=1., label=r"$n_x^+$")
     ax.set_xlim(1e6,1e12)
     ax.set_ylim(60,120)
     ax.text(0.5,1.05,"2015-03-11 16:22 UT", ha="center", va="center", fontdict={"color":"b"}, transform=ax.transAxes)
@@ -130,12 +131,12 @@ def analysis_plot():
     ax = axes[2,0]
     ax.set_ylabel("Height, km")
     ax.set_xlabel(r"Absorption $(\beta^h)$, $db/km$")
-    ax.plot(fit_mod(_ncf.variables["abs.ah.sn.o"][10,:], lim=65), alt, color="r", ls="--", lw=1.)
-    ax.plot(fit_mod(_ncf.variables["abs.ah.av.cc.o"][10,:], lim=65), alt, color="g", ls="--", lw=1.)
-    ax.plot(fit_mod(_ncf.variables["abs.ah.av.mb.o"][10,:], lim=65), alt, color="b", ls="--", lw=1.)
-    ax.plot(fit_mod(_ncf.variables["abs.sw.ft.o"][10,:], lim=65), alt, color="k", ls="-.", lw=1.)
+    ax.plot(fit_mod(_ncf.variables["abs.ah.sn.o"][10,:], lim=75), alt, color="r", ls="--", lw=1.)
+    ax.plot(fit_mod(_ncf.variables["abs.ah.av.cc.o"][10,:], lim=75), alt, color="g", ls="--", lw=1.)
+    ax.plot(fit_mod(_ncf.variables["abs.ah.av.mb.o"][10,:], lim=75), alt, color="b", ls="--", lw=1.)
+    ax.plot(fit_mod(_ncf.variables["abs.sw.ft.o"][10,:], lim=75), alt, color="k", ls="-.", lw=1.)
     ax.set_ylim(60,120)
-    ax.set_xlim(0,0.15)
+    ax.set_xlim(0,0.015)
     ax.text(0.7,.9,"(c.1)", ha="center", va="center", transform=ax.transAxes)
     ax = axes[2,1]
     ax.set_xlabel(r"Absorption $(\beta^h)$, $db/km$")
@@ -231,6 +232,6 @@ if __name__ == "__main__":
     # Run one time plots for final use
     ###############################################
     plot_rio_locations()
-    analysis_plot()
-    example_event()
+    #analysis_plot()
+    #example_event()
     pass

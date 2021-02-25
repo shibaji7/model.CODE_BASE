@@ -145,7 +145,7 @@ class Goes(object):
                 data["date"] = jd
                 data_dict = pd.DataFrame(data)
                 data_dict.to_csv(fname, index=False, header=True)
-                os.system("gzip {fname}".format(fname=fname))
+                os.system("gzip -f {fname}".format(fname=fname))
                 if v: print("\n File saved  -to- " + fname)
                 os.remove(fn)
                 conn.to_remote_FS(fname + ".gz")
@@ -158,7 +158,7 @@ class Goes(object):
         fname = "proc/goes/{dnx}.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
         if conn.chek_remote_file_exists(fname):
             conn.from_remote_FS(fname)
-            os.system("gzip -d {fname}".format(fname=fname))
+            os.system("gzip -df {fname}".format(fname=fname))
             fname = fname.replace(".gz", "")
         else: print(" File does not exists:" + fname)
         if close: conn.close()
@@ -179,6 +179,15 @@ class Goes(object):
         conn.close()
         return
     
+    @staticmethod
+    def run_goes_downloads_dates(dates):
+        conn = get_session()
+        goes = Goes()
+        for e in dates:
+            goes.download_goes_data(conn, e)
+        conn.close()
+        return
+    
 class Riometer(object):
     
     def __init__(self):
@@ -190,7 +199,7 @@ class Riometer(object):
         fname = "proc/riometer/{year}/{code}{dnx}_03.txt.gz".format(year=dn.year,code=code,dnx=dn.strftime("%Y%m%d"))
         if conn.chek_remote_file_exists(fname):
             conn.from_remote_FS(fname)
-            os.system("gzip -d {fname}".format(fname=fname))
+            os.system("gzip -df {fname}".format(fname=fname))
             fname = fname.replace(".gz", "")            
             file_name = "proc/riometer/{year}/{code}_{dnx}.csv".format(year=dn.year,code=code,dnx=dn.strftime("%Y.%m.%d.%H.%M"))
             self.parse_riometer(dn.strftime("%Y%m%d "), fname, file_name)
@@ -299,25 +308,26 @@ class Simulation(object):
         if conn==None: close, conn = True, get_session()
         if conn.chek_remote_file_exists(bgc_file): 
             conn.from_remote_FS(bgc_file)
-            os.system("gzip -d " + bgc_file)
+            os.system("gzip -df " + bgc_file)
         if close: conn.close()
         return
     
-    def save_flare_file(self, conn=None):
-        flare_file = self._dir_ + "flare.nc.gz"
+    def save_flare_file(self, conn=None, flare_file=None):
+        if flare_file==None: flare_file = self._dir_ + "flare.nc.gz"
         close = False
         if conn==None: close, conn = True, get_session()
+        conn.create_remote_dir("/".join(flare_file.split("/")[:-1]))
         if os.path.exists(flare_file): conn.to_remote_FS(flare_file)
         if close: conn.close()
         return
     
-    def get_flare_file(self, conn=None):
-        flare_file = self._dir_ + "flare.nc.gz"
+    def get_flare_file(self, conn=None, flare_file=None):
+        if flare_file==None: flare_file = self._dir_ + "flare.nc.gz"
         close = False
         if conn==None: close, conn = True, get_session()
         if conn.chek_remote_file_exists(flare_file): 
             conn.from_remote_FS(flare_file)
-            os.system("gzip -d " + flare_file)
+            os.system("gzip -df " + flare_file)
         if close: conn.close()
         return
     
@@ -335,7 +345,7 @@ class Simulation(object):
         if conn==None: close, conn = True, get_session()
         if conn.chek_remote_file_exists(skill_file): 
             conn.from_remote_FS(skill_file)
-            os.system("gzip -d " + skill_file)
+            os.system("gzip -df " + skill_file)
         if close: conn.close()
         return
     

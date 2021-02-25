@@ -67,7 +67,7 @@ def batch_mode_stats_run(start, end, cls):
         for rio in riometers:
             sim = Simulation(ev, rio)
             if sim.check_riometer_data_exists(conn) and sim.check_goes_exists(conn) and\
-                not sim.check_flare_not_exists(conn) and sim.check_skill_not_exists(conn):                
+                not sim.check_flare_not_exists(conn) and not sim.check_skill_not_exists(conn):                
                 Riometer().get_riometer_file(conn, ev, rio)
                 _dir_ = "proc/outputs/{dnx}/{code}/".format(code=rio,dnx=ev.strftime("%Y.%m.%d.%H.%M"))
                 skill_file = _dir_ + "skill.nc"
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--start", default=10, help="Start minutes delayed by some time", type=float)
     parser.add_argument("-e", "--end", default=50, help="End minutes delayed by some time", type=float)
     parser.add_argument("-v", "--verbose", action="store_false", help="Increase output verbosity (default True)")
-    parser.add_argument("-p", "--prog", default="flare", help="Program code [flare/bgc/stats/tocsv] (default bgc)")
+    parser.add_argument("-p", "--prog", default="stats", help="Program code [flare/bgc/stats/tocsv] (default bgc)")
     args = parser.parse_args()
     if args.verbose:
         print("\n Parameter list for Bgc simulation ")

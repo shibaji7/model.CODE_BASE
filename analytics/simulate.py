@@ -46,7 +46,7 @@ if __name__ == "__main__":
         print("\n Parameter list for simulation ")
         for k in vars(args).keys():
             print("     " , k , "->" , str(vars(args)[k]))
-    elif args.prog == "flare": Model(args.rio, args.event, args).run()
+    if args.prog == "flare": Model(args.rio, args.event, args).run()
     else: print("\n Program not implemented")
     print("")
     if os.path.exists("models/__pycache__"): os.system("rm -rf models/__pycache__")

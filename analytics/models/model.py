@@ -40,8 +40,8 @@ class Model(object):
         self.sim = Simulation(self.ev, self.rio)
         self.conn = get_session()
         self.check_run = False
-        if self.sim.check_riometer_data_exists(self.conn) and self.sim.check_goes_exists(self.conn) and\
-            not self.sim.check_bgc_not_exists(self.conn) and not self.sim.check_flare_not_exists(self.conn):
+        if not self.sim.check_riometer_data_exists(self.conn) and self.sim.check_goes_exists(self.conn) and\
+            not self.sim.check_bgc_not_exists(self.conn) and self.sim.check_flare_not_exists(self.conn):
             self._init_()
             self.check_run = True
             self.files = []
@@ -49,7 +49,8 @@ class Model(object):
 
     def _init_(self):
         """ Initialize the data folder """
-        if not os.path.exists(self._dir_): self.sim.create_remote_local_dir(self.conn)
+        self.sim.create_remote_local_dir(self.conn)
+        if not os.path.exists(self._dir_): os.system("mkdir -p "+self._dir_)
         self.download_goes_riometers_bgc()
         return
     
@@ -141,7 +142,7 @@ class Model(object):
 
         rootgrp.close()
         os.system("gzip "+fname.replace(".gz",""))
-        self.sim.save_flare_file(self.conn)
+        self.sim.save_flare_file(self.conn, flare_file=fname)
         if len(self.files) > 0: self.sim.save_image_files(self.conn, self.files)
         return
 
@@ -164,16 +165,19 @@ class Model(object):
     def _exp_(self, name, params, save_fname=None):
         """ Experiment specific model run. Provide scale factors of the parameter """
         print("\n Experiment - ", name)
-        self.pg = utils.PointGrid(self.rio, self.ev, self.start, self.end, freq=self.frequency, v=self.verbose, fname="data/tElec/{dn}/")
+        self._init_()
+        self.files = []
+        self.pg = utils.PointGrid(self.rio, self.ev, self.start, self.end, freq=self.frequency, v=self.verbose)
         self.ir = Euvac.get_solar_flux(self.ev, self.start, self.end)
         if name == "TElec":
-            if save_fname is None: save_fname = "data/tElec/{dn}/flare.{stn}.TElec[%.2f].nc.gz"%params["TElec"]
+            if save_fname is None: save_fname = "proc/outputs/tElec/{date}/{rio}/flare.TElec_%.2f.nc.gz"%params["TElec"]
             lam = 1.
             self.pg.iri["Te"] = self.pg.iri["Te"] * params["TElec"]
             self.pg._col_ = Collision(self.pg.msis, self.pg.iri, self.pg.iri["Ne"], self.pg.iri["Te"], self.pg.iri["Ti"])
         if name == "lambda": 
-            if save_fname is None: save_fname = "data/tElec/{dn}/flare.{stn}.lambda[%.2f].nc.gz"%params["lambda"]
+            if save_fname is None: save_fname = "proc/outputs/lambda/{date}/{rio}/flare.lambda_%.2f.nc.gz"%params["lambda"]
             lam = params["lambda"]
         self.cm = GPI(self.pg, self.sps, self.ir, lam_const=lam).exe(verbose=self.verbose)
         self.pg.update_grid(self.cm)
         if hasattr(self, "save_result") and self.save_result: self._save_(save_fname)
+        return
