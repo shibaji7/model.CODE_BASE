@@ -38,7 +38,7 @@ if case == 1:
             for i in range(len(_t)-1):
                 dat = plotParamDF[(plotParamDF[r] >= _r[j]) & (plotParamDF[r] < _r[j+1])
                         & (plotParamDF[t] >= _t[i]) & (plotParamDF[t] < _t[i+1])]
-                if len(dat) > 0: Z[i,j] = dat[zv].mean()
+                if len(dat) > 0: Z[i,j] = np.array(dat[zv] + 0.1).mean()
 
         _r, _t = np.arange(0,1,1/len(_r)), np.arange(0,360,360./len(_t))
         rr, tt = np.meshgrid(_r, _t)
@@ -63,7 +63,7 @@ if case == 1:
         ax.set_rlim(0,1)
         ax.set_theta_zero_location("S")
         r, t, v, rr, tt, Z = parse_2D_data(df, "sza", "local_time", "S_"+nm)
-        im = ax.pcolormesh(np.deg2rad(tt), rr, Z, cmap="RdBu", alpha=0.75, vmax=0.6, vmin=-.2, shading="auto")
+        im = ax.pcolormesh(np.deg2rad(tt), rr, Z, cmap="RdBu", alpha=0.75, vmax=0.5, vmin=-.5, shading="auto")
         txt = labels[j] + "\n" + r"$\bar{\mathcal{S}}_F$=%.3f"%np.mean(v) + "\n" +\
                 r"$\lbrace\mathcal{S}_F\rbrace\sim$[%.2f,%.2f]"%(np.quantile(v,.025), np.quantile(v,.975))
         ax.text(np.deg2rad(225),1.8, txt, ha="center", va="center", fontdict=fonttext)
@@ -79,7 +79,7 @@ if case == 1:
         ax.set_rlim(0,1)
         ax.set_theta_zero_location("S")
         r, t, v, rr, tt, Z = parse_2D_data(df, "mlat", "mlt", "S_"+nm)
-        im = ax.pcolormesh(np.deg2rad(tt), rr, Z, cmap="RdBu", alpha=0.75, vmax=.6, vmin=-.2, shading="auto")
+        im = ax.pcolormesh(np.deg2rad(tt), rr, Z, cmap="RdBu", alpha=0.75, vmax=.5, vmin=-.5, shading="auto")
         txt = labels[j] + "\n" + r"$\bar{\mathcal{S}}_F$=%.3f"%np.mean(v) + "\n" +\
                 r"$\mathcal{S}_F\sim$[%.2f,%.2f]"%(np.quantile(v,.025), np.quantile(v,.975))
         ax.grid(True)
