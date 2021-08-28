@@ -52,9 +52,9 @@ if case == 1:
         return u.r.tolist(), u.t.tolist(), u.z.tolist(), rr, tt, Z
 
 
-    fig = plt.figure(dpi=180, figsize=(5,10))
-    labels = [r"$\beta_{ah}(\nu_{sn})$", r"$\beta_{ah}(\nu^{cc}_{av})$",
-                            r"$\beta_{ah}(\nu^{mb}_{av})$", r"$\beta_{sw}(\nu_{me})$"]
+    fig = plt.figure(dpi=180, figsize=(9,14))
+    labels = [r"$\beta_{ah}(\nu_{sn})$", r"$\beta_{ah}(\nu^{av}_{cc})$",
+                            r"$\beta_{ah}(\nu^{av}_{mb})$", r"$\beta_{sw}(\nu_{me})$"]
     for j, nm in enumerate(["sn","avcc","avmb","sw"]):
         df = pd.concat([pd.read_csv("config/skills_X.csv"),pd.read_csv("config/skills_M.csv")])
         df = df[df["S_"+nm]>-.3]
@@ -66,14 +66,17 @@ if case == 1:
         im = ax.pcolormesh(np.deg2rad(tt), rr, Z, cmap="RdBu", alpha=0.75, vmax=0.5, vmin=-.5, shading="auto")
         txt = labels[j] + "\n" + r"$\bar{\mathcal{S}}_F$=%.3f"%np.mean(v) + "\n" +\
                 r"$\lbrace\mathcal{S}_F\rbrace\sim$[%.2f,%.2f]"%(np.quantile(v,.025), np.quantile(v,.975))
-        ax.text(np.deg2rad(225),1.8, txt, ha="center", va="center", fontdict=fonttext)
+        ax.text(np.deg2rad(225),1.6, txt, ha="center", va="center", fontdict=fonttext)
         ax.grid(True)
         if j==0: ax.set_title(r"$\mathcal{S}_F\left(LT, SZA\right)$",fontdict=fontlabel)
+        ax.set_yticks([1./3., 2./3., 1.])
         ax.set_xticklabels([])
         ax.set_yticklabels([])
+        ax.grid(color="gray", linestyle="-", linewidth=0.3, alpha=0.5)
         if j==0: 
             ax.set_xticklabels(["0", 3, "6", 9, "12LT", 15, "18", 21], fontdict=font)
-            ax.set_yticklabels([r"$0.1\pi$", r"$0.2\pi$", r"$0.3\pi$", r"$0.4\pi$", r"$0.5\pi$"], fontdict=font)
+            #ax.set_yticklabels([r"18$^o$", r"36$^o$", r"54$^o$", r"72$^o$", r"90$^o$"], fontdict=font)
+            ax.set_yticklabels([r"30$^o$", r"60$^o$", r"90$^o$"], fontdict=font)
 
         ax = plt.subplot(421+j*2+1, projection="polar")
         ax.set_rlim(0,1)
@@ -84,11 +87,14 @@ if case == 1:
                 r"$\mathcal{S}_F\sim$[%.2f,%.2f]"%(np.quantile(v,.025), np.quantile(v,.975))
         ax.grid(True)
         if j==0: ax.set_title(r"$\mathcal{S}_F\left(MLT, MLAT\right)$",fontdict=fontlabel)
+        ax.set_yticks([1./3., 2./3., 1.])
         ax.set_xticklabels([])
         ax.set_yticklabels([])
+        ax.grid(color="gray", linestyle="-", linewidth=0.3, alpha=0.5)
         if j==0: 
             ax.set_xticklabels(["0", 3, "6", 9, "12MLT", 15, "18", 21], fontdict=font)
-            ax.set_yticklabels([r"$0.1\pi$", r"$0.2\pi$", r"$0.3\pi$", r"$0.4\pi$", r"$0.5\pi$"], fontdict=font)
+            #ax.set_yticklabels([r"$0.1\pi$", r"$0.2\pi$", r"$0.3\pi$", r"$0.4\pi$", r"$0.5\pi$"], fontdict=font)
+            ax.set_yticklabels([r"30$^o$", r"60$^o$", r"90$^o$"], fontdict=font)
     cb = fig.colorbar(im, ax=plt.gcf().get_axes(), shrink=0.4)
     cb.set_label(r"$\mathcal{S}_F$", fontdict={"size":15})
     fig.savefig("figs/Figure061.png", bbox_inches="tight")
@@ -114,13 +120,13 @@ if case == 2:
         ax.axhline(0, color="k", ls="--", lw="0.8")
         ax.plot(x, func(np.array(x), *popt), color=col, lw=0.6)
         if col=="r": ax.text(0.8, 1.05, r"$\tau_{X}$=%.2f"%np.round(kendalltau(u[ny], func(u[nx], *popt)),2)[0],
-                             ha="center", va="center", fontdict={"color":"red", "size":8}, transform=ax.transAxes)
+                             ha="center", va="center", fontdict={"color":"red", "size":12}, transform=ax.transAxes)
         if col=="b": ax.text(0.2, 1.05, r"$\tau_{M}$=%.2f"%np.round(kendalltau(u[ny], func(u[nx], *popt)),2)[0], 
-                             ha="center", va="center", fontdict={"color":"blue", "size":8}, transform=ax.transAxes)
+                             ha="center", va="center", fontdict={"color":"blue", "size":12}, transform=ax.transAxes)
         return
 
 
-    fig1, axes1 = plt.subplots(figsize=(8, 8), nrows=4, ncols=4, dpi=150, sharey="row", sharex="col")
+    fig1, axes1 = plt.subplots(figsize=(10, 10), nrows=4, ncols=4, dpi=120, sharey="row", sharex="col")
     for cls, col, mul, peaks in zip(["X", "M"], ["r", "b"], [0.08, 0.1], [[12,10],[15,15]]):
         for j, nm in enumerate(["sn","avcc","avmb","sw"]):
             df = pd.concat([pd.read_csv("config/skills_%s.csv"%cls)])
@@ -153,4 +159,5 @@ if case == 2:
     axes1[3,0].set_ylim(-0.1,0.7)
     font["size"] = size*1.5
     fig1.text(0.01, 0.4, r"$\mathcal{S}_F = 1-\frac{RMSE_{model}}{RMSE_{DRAP}}$", fontdict=font, rotation=90)
+    fig1.subplots_adjust(wspace=0.3, hspace=0.3)
     fig1.savefig("figs/Figure06.png", bbox_inches="tight")

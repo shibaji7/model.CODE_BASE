@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 # Data source
+*.png
 data/*
 analytics/proc/*
 analytics/config/f.e20.FXSD.f19_f19.001.cam.h0.2000-01.nc

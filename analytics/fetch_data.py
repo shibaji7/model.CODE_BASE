@@ -46,6 +46,7 @@ class Conn2Remote(object):
     
     def conn(self):
         if not self.con:
+            #self.host = "cascades1.arc.vt.edu"
             self.ssh = paramiko.SSHClient()
             self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh.connect(hostname=self.host, port = self.port, username=self.user, key_filename=self.key_filename)

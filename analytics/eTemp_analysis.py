@@ -87,20 +87,25 @@ if __name__ == "__main__":
         font = {"family": "serif", "color":  "black", "weight": "normal", "size": 6}
         fonttext = {"family": "serif", "color":  "blue", "weight": "normal", "size": 6}
         fmt = mdates.DateFormatter("%H:%M")
+        print("Here")
         sim = Simulation(args.event, args.rio)
         _dir = "proc/outputs/tElec/{date}/{rio}/".format(date=args.event.strftime("%Y.%m.%d.%H.%M"), rio=args.rio)
         if not os.path.exists(_dir): os.system("mkdir -p "+_dir)
+        print("Here")
         X = []
         plt.style.use("seaborn-bright")
-        fig, axes = plt.subplots(figsize=(6, 2), nrows=1, ncols=2, dpi=100)
+        fig, axes = plt.subplots(figsize=(6, 2), nrows=1, ncols=2, dpi=150)
         ax = axes[0]
         ax.xaxis.set_major_formatter(fmt)
         cmap = matplotlib.cm.get_cmap("Reds")
         Mx = np.zeros((60, len(TElec)))
+        print("Here")
         Riometer().get_riometer_file(None, args.event, args.rio)
         _abs_ = utils.read_riometer(args.event, args.rio)
         _abs_ = _abs_[(_abs_.date > start) & (_abs_.date < end-dt.timedelta(minutes=1))]
+        print("Here")
         for i, t in enumerate(TElec):
+            print(i, t)
             fname = _dir + "flare.TElec_%.2f.nc.gz"%t
             if not os.path.exists(fname.replace(".gz", "")): sim.get_flare_file(None, fname)
             nc = Dataset(fname.replace(".gz", ""))
@@ -115,7 +120,7 @@ if __name__ == "__main__":
             e = utils.estimate_error(m, _abs_)
             X.append(e)
             print(fname)
-        ax.plot(_abs_.date, _abs_.absorp, "ko", alpha=0.4, markersize=0.1, label=r"$\beta_{R}$", lw=.4)
+        ax.plot(_abs_.date, _abs_.absorp, "ko", alpha=0.9, markersize=.5, label=r"$\beta_{R}$", lw=.4)
         mn, st = 1.2*np.median(Mx, axis=1), 1.98*np.std(Mx, axis=1)
         ax.plot(m.date, mn, color="r", linewidth=0.8, ls="--", label=r"$\beta_m$")
         ax.fill_between(m.date, mn - st, mn + st, color="r", alpha=0.5, label="95% CI")
@@ -125,7 +130,7 @@ if __name__ == "__main__":
             args.rio.upper()), horizontalalignment="center",
             verticalalignment="center", transform=ax.transAxes, fontdict=fonttext)
         ax.set_ylim(-.1,2.5)
-        ax.legend(loc=1, scatterpoints=3, fontsize=4, ncol=1, frameon=True)
+        ax.legend(loc=1, scatterpoints=3, fontsize=6, ncol=1, frameon=True)
         ax.set_xlabel("Time (UT)", fontdict=font)
         ax.set_ylabel("Absorption, dB", fontdict=font)
         ax = axes[1]
