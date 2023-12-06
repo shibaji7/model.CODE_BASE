@@ -128,11 +128,11 @@ if __name__ == "__main__":
             ax.plot(times, 2*utils.int_absorption(nc.variables["abs.ah.sn.o"][:], model["alts"], extpoint=68), "r",
                                         linewidth=1.2, label=r"$\beta_{ah}(\nu_{sn})$")
             ax.plot(times, 2*utils.int_absorption(nc.variables["abs.ah.av.cc.o"][:], model["alts"], extpoint=64), "g",
-                    linewidth=0.8, label=r"$\beta_{ah}(\nu_{av}^{cc})$")
+                    linewidth=0.8, label=r"$\beta_{ah}(\nu_{cc}^{av})$")
             ax.plot(times, 2*utils.int_absorption(nc.variables["abs.ah.av.mb.o"][:], model["alts"], extpoint=64), "b",
-                    linewidth=1.2, label=r"$\beta_{ah}(\nu_{av}^{mb})$")
+                    linewidth=1.2, label=r"$\beta_{ah}(\nu_{mb}^{av})$")
             ax.plot(times, 2*utils.int_absorption(nc.variables["abs.sw.ft.o"][:], model["alts"], extpoint=64), "k",
-                    linewidth=0.8, label=r"$\beta_{ah}(\nu_{av}^{cc})$")
+                    linewidth=0.8, label=r"$\beta_{sw}(\nu_{me})$")
             ax.set_xlim(start, end)
             ax.scatter(_X_[_X_.model=="Y"].dt, _X_[_X_.model=="Y"].db, s=1.2, color="darkred", 
                     alpha=0.8, label="Levine et al. (2019)")

@@ -77,8 +77,8 @@ if __name__ == "__main__":
     wd = 11
     ax.set_xlabel("Frequency, MHz", fontdict=font)
     ax.loglog(fo, utils.smooth(_lo_[:,0,0], wd), "r", linewidth=1.2, label=r"$\beta_{ah}(\nu_{sn})$")
-    ax.loglog(fo, utils.smooth(_lo_[:,1,0], wd), "g", linewidth=0.8, label=r"$\beta_{ah}(\nu_{av}^{cc})$")
-    ax.loglog(fo, utils.smooth(_lo_[:,2,0], wd), "b", linewidth=1.2, label=r"$\beta_{ah}(\nu_{av}^{mb})$")
+    ax.loglog(fo, utils.smooth(_lo_[:,1,0], wd), "g", linewidth=0.8, label=r"$\beta_{ah}(\nu_{cc}^{av})$")
+    ax.loglog(fo, utils.smooth(_lo_[:,2,0], wd), "b", linewidth=1.2, label=r"$\beta_{ah}(\nu_{mb}^{av})$")
     ax.loglog(fo, utils.smooth(_lo_[:,3,0], wd), "k", linewidth=1.2, label=r"$\beta_{sw}(\nu_{me})$")
     ax.set_ylim(1,1e5)
     ax.set_xlim(1,200)

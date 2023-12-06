@@ -121,8 +121,8 @@ def analysis_plot():
     ax.set_xlabel(r"Collision Frequency $(\nu)$, $s^{-1}$")
     ax.semilogx(fit_mod(_ncb.variables["col.av.sn"][10,:]), alt, color="b", ls="--", lw=1., label=r"$\nu_{sn}$")
     ax.semilogx(_ncb.variables["col.ft"][20,:], alt, color="r", ls="--", lw=1., label=r"$\nu_{me}$")
-    ax.semilogx(_ncb.variables["col.av.cc"][20,:], alt, color="g", ls="--", lw=1., label=r"$\nu^{cc}_{av}$")
-    ax.semilogx(_ncb.variables["col.av.mb"][20,:], alt, color="g", ls="-.", lw=1., label=r"$\nu^{mb}_{av}$")
+    ax.semilogx(_ncb.variables["col.av.cc"][20,:], alt, color="g", ls="--", lw=1., label=r"$\nu^{av}_{cc}$")
+    ax.semilogx(_ncb.variables["col.av.mb"][20,:], alt, color="g", ls="-.", lw=1., label=r"$\nu^{av}_{mb}$")
     ax.set_ylim(60,120)
     ax.set_xlim(1e2,1e8)
     ax.text(0.7,.9,"(b.2)", ha="center", va="center", transform=ax.transAxes)
@@ -141,9 +141,9 @@ def analysis_plot():
     ax = axes[2,1]
     ax.set_xlabel(r"Absorption $(\beta^h)$, $db/km$")
     ax.plot(fit_mod(_ncf.variables["abs.ah.sn.o"][22,:]), alt, color="r", ls="--", lw=1., label=r"$\beta_{ah}^h(\nu_{sn})$")
-    ax.plot(fit_mod(_ncf.variables["abs.ah.av.cc.o"][22,:]), alt, color="g", ls="--", lw=1., label=r"$\beta_{ah}^h(\nu^{cc}_{av})$")
-    ax.plot(fit_mod(_ncf.variables["abs.ah.av.mb.o"][22,:]), alt, color="b", ls="--", lw=1., label=r"$\beta_{ah}^h(\nu^{mb}_{av})$")
-    ax.plot(fit_mod(_ncf.variables["abs.sw.ft.o"][22,:]), alt, color="k", ls="-.", lw=1., label=r"$\beta_{ah}^h(\nu_{me})$")
+    ax.plot(fit_mod(_ncf.variables["abs.ah.av.cc.o"][22,:]), alt, color="g", ls="--", lw=1., label=r"$\beta_{ah}^h(\nu^{av}_{cc})$")
+    ax.plot(fit_mod(_ncf.variables["abs.ah.av.mb.o"][22,:]), alt, color="b", ls="--", lw=1., label=r"$\beta_{ah}^h(\nu^{av}_{mb})$")
+    ax.plot(fit_mod(_ncf.variables["abs.sw.ft.o"][22,:]), alt, color="k", ls="-.", lw=1., label=r"$\beta_{sw}^h(\nu_{me})$")
     ax.set_ylim(60,120)
     ax.set_xlim(0,0.15)
     ax.legend(bbox_to_anchor=(1.75, 0.8))
@@ -207,9 +207,9 @@ def example_event():
     ax.plot(times, utils.int_absorption(_ncf.variables["abs.ah.sn.o"][:], alts, extpoint=68),
             "r", label=r"$\beta_{ah}(\nu_{sn})$", ls="-", lw=1.2)
     ax.plot(times, utils.int_absorption(_ncf.variables["abs.ah.av.cc.o"][:], alts, extpoint=64),
-            "g", label=r"$\beta_{ah}(\nu_{av}^{cc})$", ls="-", lw=0.8)
+            "g", label=r"$\beta_{ah}(\nu_{cc}^{av})$", ls="-", lw=0.8)
     ax.plot(times, utils.int_absorption(_ncf.variables["abs.ah.av.mb.o"][:], alts, extpoint=64),
-            "b", label=r"$\beta_{ah}(\nu_{av}^{mb})$", ls="-", lw=1.2)
+            "b", label=r"$\beta_{ah}(\nu_{mb}^{av})$", ls="-", lw=1.2)
     ax.plot(times, utils.int_absorption(_ncf.variables["abs.sw.ft.o"][:], alts, extpoint=64),
                     "k", label=r"$\beta_{sw}(\nu_{me})$", ls="-", lw=1.2)
     ax.legend(loc=1, scatterpoints=2, ncol=1, fontsize=8, frameon=True)
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     ###############################################
     # Run one time plots for final use
     ###############################################
-    plot_rio_locations()
-    #analysis_plot()
+    #plot_rio_locations()
+    analysis_plot()
     #example_event()
     pass
